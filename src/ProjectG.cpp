@@ -110,3 +110,40 @@ void createRobotsClock(){
 
 
 }
+
+void planLR(){
+
+}
+
+void planClock(){
+
+}
+
+int main(int, char **)
+{
+    int environment;
+
+    do
+    {
+        std::cout << "Plan for: " << std::endl;
+        std::cout << " (1) LR Robots" << std::endl;
+        std::cout << " (2) Clock Robots" << std::endl;
+
+        std::cin >> environment;
+    } while (environment < 1 || environment > 2);
+
+    switch (environment)
+    {
+        case 1:
+            planLR();
+            break;
+        case 2:
+            planClock();
+            break;
+        default:
+            std::cerr << "Invalid Environment!" << std::endl;
+            break;
+    }
+
+    return 0;
+}

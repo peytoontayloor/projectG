@@ -11,7 +11,9 @@
 #include "ompl/base/State.h"
 #include <limits>
 
-ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : base::Planner(si, "dRRT")
+#include "dRRT.h"
+
+ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
 {
     specs_.approximateSolutions = true;
     siC_ = si.get();
@@ -28,7 +30,7 @@ ompl::control::dRRT::~dRRT()
 
 void ompl::control::dRRT::setup()
 {
-    base::Planner::setup();
+    ompl::base::Planner::setup();
     if (!nn_)
         nn_.reset(tools::SelfConfig::getDefaultNearestNeighbors<Motion *>(this));
     nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
@@ -36,7 +38,7 @@ void ompl::control::dRRT::setup()
 
 void ompl::control::dRRT::clear()
 {
-    Planner::clear();
+    ompl::base::Planner::clear();
     sampler_.reset();
     controlSampler_.reset();
     freeMemory();
@@ -62,19 +64,19 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
-ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminationCondition &ptc)
+ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
-    base::Goal *goal = pdef_->getGoal().get();
-    auto *goal_s = dynamic_cast<base::GoalSampleableRegion *>(goal);
+    ompl::base::Goal *goal = pdef_->getGoal().get();
+    auto *goal_s = dynamic_cast<ompl::base::GoalSampleableRegion *>(goal);
 
     if (goal_s == nullptr)
     {
         OMPL_ERROR("%s: Unknown type of goal", getName().c_str());
-        return base::PlannerStatus::UNRECOGNIZED_GOAL_TYPE;
+        return ompl::base::PlannerStatus::UNRECOGNIZED_GOAL_TYPE;
     }
 
-    while (const base::State *st = pis_.nextStart())
+    while (const ompl::base::State *st = pis_.nextStart())
     {
         auto *motion = new Motion(siC_);
         si_->copyState(motion->state, st);
@@ -85,13 +87,13 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminat
     if (nn_->size() == 0)
     {
         OMPL_ERROR("%s: There are no valid initial states!", getName().c_str());
-        return base::PlannerStatus::INVALID_START;
+        return ompl::base::PlannerStatus::INVALID_START;
     }
 
     if (!goal_s->couldSample())
     {
         OMPL_ERROR("%s: Insufficient states in sampleable goal region", getName().c_str());
-        return base::PlannerStatus::INVALID_GOAL;
+        return ompl::base::PlannerStatus::INVALID_GOAL;
     }
 
     if (!sampler_)
@@ -106,9 +108,9 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminat
     double approxdif = std::numeric_limits<double>::infinity();
 
     auto *rmotion = new Motion(siC_);
-    base::State *rstate = rmotion->state;
+    ompl::base::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
-    base::State *xstate = si_->allocState();
+    ompl::base::State *xstate = si_->allocState();
 
     while (!ptc)
     {
@@ -127,7 +129,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminat
         if (addIntermediateStates_)
         {
             // this code is contributed by Jennifer Barry
-            std::vector<base::State *> pstates;
+            std::vector<ompl::base::State *> pstates;
             cd = siC_->propagateWhileValid(nmotion->state, rctrl, cd, pstates, true);
 
             if (cd >= siC_->getMinControlDuration())
@@ -246,7 +248,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminat
 
 void ompl::control::dRRT::getPlannerData(base::PlannerData &data) const
 {
-    Planner::getPlannerData(data);
+    ompl::base::Planner::getPlannerData(data);
 
     std::vector<Motion *> motions;
     if (nn_)
@@ -255,19 +257,19 @@ void ompl::control::dRRT::getPlannerData(base::PlannerData &data) const
     double delta = siC_->getPropagationStepSize();
 
     if (lastGoalMotion_)
-        data.addGoalVertex(base::PlannerDataVertex(lastGoalMotion_->state));
+        data.addGoalVertex(ompl::base::PlannerDataVertex(lastGoalMotion_->state));
 
     for (auto m : motions)
     {
         if (m->parent)
         {
             if (data.hasControls())
-                data.addEdge(base::PlannerDataVertex(m->parent->state), base::PlannerDataVertex(m->state),
-                             control::PlannerDataEdgeControl(m->control, m->steps * delta));
+                data.addEdge(ompl::base::PlannerDataVertex(m->parent->state), ompl::base::PlannerDataVertex(m->state),
+                             ompl::control::PlannerDataEdgeControl(m->control, m->steps * delta));
             else
-                data.addEdge(base::PlannerDataVertex(m->parent->state), base::PlannerDataVertex(m->state));
+                data.addEdge(ompl::base::PlannerDataVertex(m->parent->state), ompl::base::PlannerDataVertex(m->state));
         }
         else
-            data.addStartVertex(base::PlannerDataVertex(m->state));
+            data.addStartVertex(ompl::base::PlannerDataVertex(m->state));
     }
 }
