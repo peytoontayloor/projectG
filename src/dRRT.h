@@ -27,13 +27,13 @@ namespace ompl
         */
 
         /** \brief Rapidly-exploring Random Tree */
-        class RRT : public base::Planner
+        class dRRT : public base::Planner
         {
         public:
             /** \brief Constructor */
-            RRT(const SpaceInformationPtr &si);
+            dRRT(const SpaceInformationPtr &si);
 
-            ~RRT() override;
+            ~dRRT() override;
 
             /** \brief Continue solving for some amount of time. Return true if solution was found. */
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;

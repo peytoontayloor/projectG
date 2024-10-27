@@ -1,27 +1,32 @@
 
 /* Author: Ioan Sucan */
 
-#include "ompl/control/planners/rrt/RRT.h"
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/tools/config/SelfConfig.h"
+#include "ompl/base/SpaceInformation.h"
+#include "ompl/control/SpaceInformation.h"
+#include "ompl/base/PlannerStatus.h"
+#include "ompl/base/Planner.h"
+#include "ompl/base/Goal.h"
+#include "ompl/base/State.h"
 #include <limits>
 
-ompl::control::RRT::RRT(const SpaceInformationPtr &si) : base::Planner(si, "RRT")
+ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : base::Planner(si, "dRRT")
 {
     specs_.approximateSolutions = true;
     siC_ = si.get();
 
-    Planner::declareParam<double>("goal_bias", this, &RRT::setGoalBias, &RRT::getGoalBias, "0.:.05:1.");
-    Planner::declareParam<bool>("intermediate_states", this, &RRT::setIntermediateStates, &RRT::getIntermediateStates,
+    Planner::declareParam<double>("goal_bias", this, &dRRT::setGoalBias, &dRRT::getGoalBias, "0.:.05:1.");
+    Planner::declareParam<bool>("intermediate_states", this, &dRRT::setIntermediateStates, &dRRT::getIntermediateStates,
                                 "0,1");
 }
 
-ompl::control::RRT::~RRT()
+ompl::control::dRRT::~dRRT()
 {
     freeMemory();
 }
 
-void ompl::control::RRT::setup()
+void ompl::control::dRRT::setup()
 {
     base::Planner::setup();
     if (!nn_)
@@ -29,7 +34,7 @@ void ompl::control::RRT::setup()
     nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
 }
 
-void ompl::control::RRT::clear()
+void ompl::control::dRRT::clear()
 {
     Planner::clear();
     sampler_.reset();
@@ -40,7 +45,7 @@ void ompl::control::RRT::clear()
     lastGoalMotion_ = nullptr;
 }
 
-void ompl::control::RRT::freeMemory()
+void ompl::control::dRRT::freeMemory()
 {
     if (nn_)
     {
@@ -57,7 +62,7 @@ void ompl::control::RRT::freeMemory()
     }
 }
 
-ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminationCondition &ptc)
+ompl::base::PlannerStatus ompl::control::dRRT::solve(const base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
     base::Goal *goal = pdef_->getGoal().get();
@@ -239,7 +244,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
     return {solved, approximate};
 }
 
-void ompl::control::RRT::getPlannerData(base::PlannerData &data) const
+void ompl::control::dRRT::getPlannerData(base::PlannerData &data) const
 {
     Planner::getPlannerData(data);
 
