@@ -10,6 +10,8 @@
 #include "ompl/base/Goal.h"
 #include "ompl/base/State.h"
 #include <limits>
+#include <math.h>
+#include <cmath>
 
 #include "dRRT.h"
 
@@ -107,7 +109,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
     Motion *approxsol = nullptr;
     double approxdif = std::numeric_limits<double>::infinity();
 
-    auto *rmotion = new Motion(siC_);
+    auto *rmotion = new Motion(siC_); // qrand
     ompl::base::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
     ompl::base::State *xstate = si_->allocState();
@@ -121,7 +123,26 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
             sampler_->sampleUniform(rstate);
 
         /* find closest state in the tree */
-        Motion *nmotion = nn_->nearest(rmotion);
+        Motion *nmotion = nn_->nearest(rmotion); // qnear
+
+        /* find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand*/
+        std::vector<Motion *> randnbrs;
+        std::size_t k = 5;
+        nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
+        Motion *newmotion;
+        double angle = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < randnbrs.size(); i++){
+            Motion * tempnew_motion = randnbrs[i];
+            double d = distanceFunction(nmotion, tempnew_motion);
+            double n = distanceFunction(rmotion, tempnew_motion);
+            double m = distanceFunction(nmotion, rmotion); 
+            double numerator = d * d + m * m - n * n;
+            double denominator = 2 * d * m;
+            double temp_angle = acos(numerator / denominator);
+            if (temp_angle < angle){
+                newmotion = tempnew_motion;
+            }
+        }
 
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
