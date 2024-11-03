@@ -6,6 +6,7 @@
 
 # include <vector>
 # include <cstddef>
+# include <cmath>
 
 #include "CollisionChecking.h"
 
@@ -60,4 +61,51 @@ std::vector<int> robotRobotCollisionCheck(Robot r1, std::vector<Robot>& robots)
         }
     }
     return collisionIds;
+}
+
+// Intersect a circle with center (x,y) and given radius with the set of rectangles.  If the circle
+// lies outside of all obstacles, return true
+bool isValidCircle(double x, double y, double radius, const std::vector<Rectangle>& obstacles)
+{
+    // Check whether the center of the circle is inside the Minkowski obstacle
+    for(size_t i = 0; i < obstacles.size(); ++i)
+    {
+        // Inflate x-axis by radius
+        if (x >= (obstacles[i].x - radius) && x <=(obstacles[i].x + obstacles[i].width + radius))
+            if (y >= obstacles[i].y  && y <= obstacles[i].y + obstacles[i].height)
+                return false;
+
+        // Inflate y-axis by radius
+        if (x >= obstacles[i].x && x <= obstacles[i].x + obstacles[i].width)
+            if (y >= (obstacles[i].y - radius)  && y <= (obstacles[i].y + obstacles[i].height + radius))
+                return false;
+
+        // Check the corners - C-obstacle has rounded edges...
+        // lower-left
+        double dx = obstacles[i].x - x;
+        double dy = obstacles[i].y - y;
+        if (sqrt(dx * dx + dy * dy) <= radius)
+            return false;
+
+        // upper-left
+        dx = obstacles[i].x - x;
+        dy = obstacles[i].y + obstacles[i].height - y;
+        if (sqrt(dx * dx + dy * dy) <= radius)
+            return false;
+
+        // upper-right
+        dx = obstacles[i].x + obstacles[i].width - x;
+        dy = obstacles[i].y + obstacles[i].height - y;
+        if (sqrt(dx * dx + dy * dy) <= radius)
+            return false;
+
+        // lower-right
+        dx = obstacles[i].x + obstacles[i].width - x;
+        dy = obstacles[i].y - y;
+        if (sqrt(dx * dx + dy * dy) <= radius)
+            return false;
+    }
+
+    // no collisions
+    return true;
 }

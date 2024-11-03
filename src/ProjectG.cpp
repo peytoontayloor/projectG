@@ -43,7 +43,7 @@ void createRobotsLR(){
     Robot lowerLeftRobot(2, 2, 0.3, 3);
 
     // robot 4 (from diagram labeling, lower right corner going to to lower left corner)
-    Robot lowerRightRobot(6, 2, 0.3, 3);
+    Robot lowerRightRobot(6, 2, 0.3, 4);
 
     std::vector<Robot> robots;
     robots.push_back(topLeftRobot);
@@ -56,7 +56,7 @@ void createRobotsLR(){
     lowerLeftRobot.setPRMPlanner(6, 2);
     lowerRightRobot.setPRMPlanner(2, 2);
 
-    std::cout << "createLowerLeftdRobot" << std::endl;
+    std::cout << "createLowerLeftRobot" << std::endl;
 
 }
 
