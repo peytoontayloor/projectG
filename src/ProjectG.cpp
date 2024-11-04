@@ -114,6 +114,14 @@ void planRobot(og::SimpleSetupPtr & ss)
 
         auto path = ss->getSolutionPath();
         path.printAsMatrix(std::cout);
+
+        // Below creates a plannerData object and stores our full roadmap to it
+        // The graphViz is a way to print visualization but isn't in matrix format, want to figure out how to get this so we can better visualize the individual roadmaps
+        // TODO: asked for help with ^^^ on piazza, waiting for response :)
+        //ob::PlannerData roadMap(ss->getSpaceInformation());
+        //ss->getPlannerData(roadMap);
+        //roadMap.printGraphviz(std::cout);
+
     }
     else
     {
