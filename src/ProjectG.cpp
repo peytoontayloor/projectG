@@ -91,7 +91,19 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 
         if (robotID == "Robot 1")
         {
-            prmPtr->getRoadmap();
+            r1RM = prmPtr->getRoadmap();
+        }
+        if (robotID == "Robot 2")
+        {
+            r2RM = prmPtr->getRoadmap();
+        }
+        if (robotID == "Robot 3")
+        {
+            r3RM = prmPtr->getRoadmap();
+        }
+        if (robotID == "Robot 4")
+        {
+            r4RM = prmPtr->getRoadmap();
         }
 
         // Below creates a plannerData object and stores our full roadmap to it
