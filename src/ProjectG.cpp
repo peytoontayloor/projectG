@@ -15,7 +15,7 @@
 # include "dRRT.h"
 
 namespace ob = ompl::base;
-namespace oc = ompl::control;
+namespace og = ompl::geometric;
 
 void createLREnvironment(std::vector<Rectangle> & obstacles){
     Rectangle left;
@@ -40,18 +40,18 @@ void createRobotsLR(std::vector<Rectangle> & obstacles){
     auto topLeftRobot = std::make_shared<Robot>();
 
     // robot 2 (from diagram labeling, top right corner going to to top left corner)
-    auto topRightRobot = std::make_shared<Robot>();
+    //auto topRightRobot = std::make_shared<Robot>();
 
     // robot 3 (from diagram labeling, lower right corner going to to lower left corner)
-    auto lowerLeftRobot= std::make_shared<Robot>();
+    //auto lowerLeftRobot= std::make_shared<Robot>();
 
     // robot 4 (from diagram labeling, lower right corner going to to lower left corner)
-    auto lowerRightRobot = std::make_shared<Robot>();
+    //auto lowerRightRobot = std::make_shared<Robot>();
 
     topLeftRobot->setPRMPlanner(2.0, 8.0, 6.0, 8.0);
-    topRightRobot->setPRMPlanner(6.0, 8.0, 2.0, 8.0);
-    lowerLeftRobot->setPRMPlanner(2.0, 2.0, 6.0, 2.0);
-    lowerRightRobot->setPRMPlanner(6.0, 6.0, 2.0, 2.0);
+    //topRightRobot->setPRMPlanner(6.0, 8.0, 2.0, 8.0);
+    //lowerLeftRobot->setPRMPlanner(2.0, 2.0, 6.0, 2.0);
+    //lowerRightRobot->setPRMPlanner(6.0, 6.0, 2.0, 2.0);
 
     std::cout << "createLowerLeftRobot" << std::endl;
 
@@ -66,10 +66,87 @@ void createRobotsClock(){
 }
 
 
+// Takes in no arguments as of now, but can modify this later
+// Goal is to have this function set up one robot in our environment
+og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double startY, const std::vector<Rectangle> &obstacles)
+{
+    auto r2(std::make_shared<ob::RealVectorStateSpace>(2));
+
+    ob::RealVectorBounds r2_bounds(2);
+    r2_bounds.setLow(0, 1);
+    r2_bounds.setHigh(0, 7);
+    r2_bounds.setLow(1, 1);
+    r2_bounds.setHigh(1, 9);
+    r2->setBounds(r2_bounds);
+
+    og::SimpleSetupPtr ss = std::make_shared<og::SimpleSetup>(r2);
+    ob::SpaceInformationPtr si = ss->getSpaceInformation();
+    
+    ss->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1, obstacles));
+
+    ob::ScopedState<> start(r2);
+    start[0] = startX;
+    start[1] = startY;
+
+    ob::ScopedState<> goal(r2);
+    goal[0] = goalX;
+    goal[1] = goalY;
+
+    // No goal radius for now
+    ss->setStartAndGoalStates(start, goal);
+
+    ss->setup();
+
+    return ss;
+
+}
+
+void planRobot(og::SimpleSetupPtr & ss)
+{
+    ss->setPlanner(std::make_shared<og::PRM>(ss->getSpaceInformation()));
+
+    //solve the problem:
+    ob::PlannerStatus solved = ss->solve(10.0);
+
+    if (solved)
+    {
+        std::cout << "Found Solution:" << std::endl;
+
+        auto path = ss->getSolutionPath();
+        path.printAsMatrix(std::cout);
+    }
+    else
+    {
+        std::cout << "No Solution Found" << std::endl;
+    }
+
+    // TODO: might need to clear the planner? 
+
+}
+
+
 int main(int, char **)
 {
     std::vector<Rectangle> obstacles;
     createLREnvironment(obstacles);
-    createRobotsLR(obstacles);
+    
+    // Creating the varius robot start and goal states: 
+    // Right now, two robots at opposite corners swapping spots:
+
+    double r1SX = 2.0;
+    double r1SY = 8.0;
+    double r1GX = 6.0;
+    double r1GY = 2.0;
+
+    double r2SX = 6.0;
+    double r2SY = 2.0;
+    double r2GX = 2.0;
+    double r2GY = 8.0;
+
+    og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
+    og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
+
+    planRobot(r1);
+    planRobot(r2);
 
 }

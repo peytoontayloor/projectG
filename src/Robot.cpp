@@ -110,8 +110,9 @@ void Robot::setPRMPlanner(double startX, double startY, double goalX, double goa
     {
         std::cout << "Found solution:" << std::endl;
         ss->getSolutionPath().printAsMatrix(solution);
-        ob::PlannerData plannerData(ss->getSpaceInformation());
-        ss->getPlannerData(plannerData);
+        std::cout << "testing print" << std::endl;
+        //ob::PlannerData plannerData(ss->getSpaceInformation());
+        //ss->getPlannerData(plannerData);
     }
     else
     {

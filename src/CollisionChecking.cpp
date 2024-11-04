@@ -36,6 +36,21 @@ AABB rectangleToAABB(const Rectangle &obstacle) {
     return rect;
 }
 
+bool isValidStatePoint(const ompl::base::State *state, const std::vector<Rectangle> &obstacles) {
+    const ompl::base::RealVectorStateSpace::StateType *R2State
+        = state->as<ompl::base::RealVectorStateSpace::StateType>();
+    double x = R2State->values[0];
+    double y = R2State->values[1];
+
+    for (size_t i = 0; i < obstacles.size(); ++i) {
+        if (rectangleToAABB(obstacles[i]).pointInsideAABB(x, y)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // /*
 // Added checking robot for collision with every other robot
 // Given a robot, returns a list of ids of robots it is in collision with 
