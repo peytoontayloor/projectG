@@ -101,7 +101,7 @@ og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double
 
 }
 
-void planRobot(og::SimpleSetupPtr & ss)
+void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 {
     ss->setPlanner(std::make_shared<og::PRM>(ss->getSpaceInformation()));
 
@@ -111,6 +111,7 @@ void planRobot(og::SimpleSetupPtr & ss)
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
+        std::cout << robotID << std::endl;
 
         auto path = ss->getSolutionPath();
         path.printAsMatrix(std::cout);
@@ -166,10 +167,10 @@ int main(int, char **)
     og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
     og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
 
-    planRobot(r1);
-    planRobot(r2);
-    planRobot(r3);
-    planRobot(r4);
+    planRobot(r1, "Robot 1");
+    planRobot(r2, "Robot 2");
+    planRobot(r3, "Robot 3");
+    planRobot(r4, "Robot 4");
 
     // TODO: now that we have these paths, going to try and get the full roadmaps for each of the robots instead of just solution paths
 
