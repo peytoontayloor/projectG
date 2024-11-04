@@ -131,22 +131,38 @@ int main(int, char **)
     createLREnvironment(obstacles);
     
     // Creating the varius robot start and goal states: 
-    // Right now, two robots at opposite corners swapping spots:
+    // Right now, doing the left/right swap from example, since just PRM right now, pretty simple solutions
 
     double r1SX = 2.0;
     double r1SY = 8.0;
     double r1GX = 6.0;
-    double r1GY = 2.0;
+    double r1GY = 8.0;
 
     double r2SX = 6.0;
-    double r2SY = 2.0;
+    double r2SY = 8.0;
     double r2GX = 2.0;
     double r2GY = 8.0;
 
+    double r3SX = 2.0;
+    double r3SY = 2.0;
+    double r3GX = 6.0;
+    double r3GY = 2.0;
+
+    double r4SX = 6.0;
+    double r4SY = 2.0;
+    double r4GX = 2.0;
+    double r4GY = 2.0;
+
     og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
     og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
+    og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
+    og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
 
     planRobot(r1);
     planRobot(r2);
+    planRobot(r3);
+    planRobot(r4);
+
+    // TODO: now that we have these paths, going to try and get the full roadmaps for each of the robots instead of just solution paths
 
 }
