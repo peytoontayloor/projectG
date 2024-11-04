@@ -13,43 +13,44 @@
 namespace ob = ompl::base;
 namespace oc = ompl::control;
 
+Robot::Robot(){}
 
-Robot::Robot(double x_param, double y_param, double radius_param, int id_param){
-    id = id_param;
-    x = x_param;
-    y = y_param;
-    radius = radius_param;
-}
+// Robot::Robot(double x_param, double y_param, double radius_param, int id_param){
+//     id = id_param;
+//     x = x_param;
+//     y = y_param;
+//     radius = radius_param;
+// }
 
 Robot::~Robot(){
     
 }
 
-double Robot::getX(){
-    return x;
-}
+// double Robot::getX(){
+//     return x;
+// }
 
-double Robot::getY(){
-    return y;
-}
+// double Robot::getY(){
+//     return y;
+// }
 
-double Robot::getRadius(){
-    return radius;
-}
+// double Robot::getRadius(){
+//     return radius;
+// }
 
-void Robot::setX(double x_param){
-    x = x_param;
-}
+// void Robot::setX(double x_param){
+//     x = x_param;
+// }
 
-void Robot::setY(double y_param){
-    y = y_param;
-}
+// void Robot::setY(double y_param){
+//     y = y_param;
+// }
 
-void Robot::setRadius(double radius_param){
-    radius = radius_param;
-}
+// void Robot::setRadius(double radius_param){
+//     radius = radius_param;
+// }
 
-bool isStateValid(const ob::SpaceInformationPtr si, double x, double y, double radius, std::vector<Robot>& robots)
+bool isStateValid(const ob::SpaceInformationPtr si, double x, double y, double radius, std::vector<Rectangle>& obstacles)
 {
      // cast the abstract state type to the type we expect
     //  const auto *se3state = state->as<ob::SE3StateSpace::StateType>();
@@ -65,10 +66,11 @@ bool isStateValid(const ob::SpaceInformationPtr si, double x, double y, double r
      // return a value that is always true but uses the two variables we define, so we avoid compiler warnings
     //  return (const void*)rot != (const void*)pos;
     // return si->satisfiesBounds(state) && robotRobotCollisionCheck(x, y, radius, robots);
+    // return si->satisfiesBounds(state) && isValidPoint(x, y, obstacles);
     return true;
 }
 
-void Robot::setPRMPlanner(double goalX, double goalY){
+void Robot::setPRMPlanner(double startX, double startY, double goalX, double goalY){
 
     std::ofstream solution ("path_" + std::to_string(id) + ".txt");
 
@@ -88,13 +90,13 @@ void Robot::setPRMPlanner(double goalX, double goalY){
     ob::ScopedState<> start(si);
     ob::ScopedState<> goal(si);
 
-    start[0] = x;
-    start[1] = y;
+    start[0] = startX;
+    start[1] = startY;
 
     goal[0] = goalX;
     goal[1] = goalY;
 
-    // ss->setStateValidityChecker(std::bind(isStateValid(si, x, y, radius, robots)));
+    // ss->setStateValidityChecker(std::bind(isStateValid(si, x, y, radius, obstacles)));
     ss->setStartAndGoalStates(start, goal);
     ss->setup();
     ss->print();

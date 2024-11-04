@@ -36,32 +36,32 @@ AABB rectangleToAABB(const Rectangle &obstacle) {
     return rect;
 }
 
-/*
-Added checking robot for collision with every other robot
-Given a robot, returns a list of ids of robots it is in collision with 
-*/ 
-std::vector<int> robotRobotCollisionCheck(Robot r1, std::vector<Robot>& robots)
-{
-    std::vector<int> collisionIds = {};
-    for (int i = 0; i < robots.size(); i ++)
-    {
-        Robot r_i = robots[i];
-        if (r1.id != r_i.id){
-            std::vector<Rectangle> obstacles;
-            Rectangle robot_i;
-            robot_i.x = r_i.getX();
-            robot_i.y = r_i.getY();
-            robot_i.width = r_i.getRadius();
-            robot_i.height = r_i.getRadius();
-            obstacles.push_back(robot_i);
-            bool valid = isValidPoint(r_i.getX(), r_i.getY(), obstacles);
-            if (!valid){
-                collisionIds.push_back(r_i.id);
-            }
-        }
-    }
-    return collisionIds;
-}
+// /*
+// Added checking robot for collision with every other robot
+// Given a robot, returns a list of ids of robots it is in collision with 
+// */ 
+// std::vector<int> robotRobotCollisionCheck(Robot r1, std::vector<Robot>& robots)
+// {
+//     std::vector<int> collisionIds = {};
+//     for (int i = 0; i < robots.size(); i ++)
+//     {
+//         Robot r_i = robots[i];
+//         if (r1.id != r_i.id){
+//             std::vector<Rectangle> obstacles;
+//             Rectangle robot_i;
+//             robot_i.x = r_i.getX();
+//             robot_i.y = r_i.getY();
+//             robot_i.width = r_i.getRadius();
+//             robot_i.height = r_i.getRadius();
+//             obstacles.push_back(robot_i);
+//             bool valid = isValidPoint(r_i.getX(), r_i.getY(), obstacles);
+//             if (!valid){
+//                 collisionIds.push_back(r_i.id);
+//             }
+//         }
+//     }
+//     return collisionIds;
+// }
 
 // Intersect a circle with center (x,y) and given radius with the set of rectangles.  If the circle
 // lies outside of all obstacles, return true

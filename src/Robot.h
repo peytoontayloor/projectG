@@ -4,9 +4,9 @@ class Robot
 {
     public: 
         int id;
-        Robot(double x, double y, double radius, int id);
+        Robot();
         ~Robot();
-        void setPRMPlanner(double goalX, double goalY);
+        void setPRMPlanner(double startX, double startY, double goalX, double goalY);
         double getX();
         double getY();
         double getRadius();
