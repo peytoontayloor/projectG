@@ -33,38 +33,6 @@ void createLREnvironment(std::vector<Rectangle> & obstacles){
     obstacles.push_back(right);
 }
 
-// Creating robots for the square environment where robots on left and right sides swap
-void createRobotsLR(std::vector<Rectangle> & obstacles){
-    // robot 1 (from diagram labeling, top left corner going to to top right corner)
-    std::cout << "starting" << std::endl;
-    auto topLeftRobot = std::make_shared<Robot>();
-
-    // robot 2 (from diagram labeling, top right corner going to to top left corner)
-    //auto topRightRobot = std::make_shared<Robot>();
-
-    // robot 3 (from diagram labeling, lower right corner going to to lower left corner)
-    //auto lowerLeftRobot= std::make_shared<Robot>();
-
-    // robot 4 (from diagram labeling, lower right corner going to to lower left corner)
-    //auto lowerRightRobot = std::make_shared<Robot>();
-
-    topLeftRobot->setPRMPlanner(2.0, 8.0, 6.0, 8.0);
-    //topRightRobot->setPRMPlanner(6.0, 8.0, 2.0, 8.0);
-    //lowerLeftRobot->setPRMPlanner(2.0, 2.0, 6.0, 2.0);
-    //lowerRightRobot->setPRMPlanner(6.0, 6.0, 2.0, 2.0);
-
-    std::cout << "createLowerLeftRobot" << std::endl;
-
-}
-
-// Creating robots for the clock swapping 
-void createRobotsClock(){
-    // TO DO: creating robots for the clock swapping
-    // auto robot1 = std::make_shared<Robot>();
-    // robot1->setPRMPlanner
-
-}
-
 
 // Takes in no arguments as of now, but can modify this later
 // Goal is to have this function set up one robot in our environment
@@ -103,7 +71,8 @@ og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double
 
 void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 {
-    ss->setPlanner(std::make_shared<og::PRM>(ss->getSpaceInformation()));
+    auto prmPtr = std::make_shared<og::PRM> (ss->getSpaceInformation());
+    ss->setPlanner(prmPtr);
 
     //solve the problem:
     ob::PlannerStatus solved = ss->solve(10.0);
@@ -115,6 +84,7 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 
         auto path = ss->getSolutionPath();
         path.printAsMatrix(std::cout);
+        prmPtr->getRoadmap();
 
         // Below creates a plannerData object and stores our full roadmap to it
         // The graphViz is a way to print visualization but isn't in matrix format, want to figure out how to get this so we can better visualize the individual roadmaps
@@ -122,6 +92,7 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
         //ob::PlannerData roadMap(ss->getSpaceInformation());
         //ss->getPlannerData(roadMap);
         //roadMap.printGraphviz(std::cout);
+        
 
     }
     else
