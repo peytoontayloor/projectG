@@ -17,6 +17,11 @@
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
+og::PRM::Graph r1RM;
+og::PRM::Graph r2RM;
+og::PRM::Graph r3RM;
+og::PRM::Graph r4RM;
+
 void createLREnvironment(std::vector<Rectangle> & obstacles){
     Rectangle left;
     left.x = 1;
@@ -32,7 +37,6 @@ void createLREnvironment(std::vector<Rectangle> & obstacles){
     obstacles.push_back(left);
     obstacles.push_back(right);
 }
-
 
 // Takes in no arguments as of now, but can modify this later
 // Goal is to have this function set up one robot in our environment
@@ -71,7 +75,7 @@ og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double
 
 void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 {
-    auto prmPtr = std::make_shared<og::PRM> (ss->getSpaceInformation());
+    auto prmPtr = std::make_shared<og::PRM>(ss->getSpaceInformation());
     ss->setPlanner(prmPtr);
 
     //solve the problem:
@@ -84,7 +88,11 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 
         auto path = ss->getSolutionPath();
         path.printAsMatrix(std::cout);
-        prmPtr->getRoadmap();
+
+        if (robotID == "Robot 1")
+        {
+            prmPtr->getRoadmap();
+        }
 
         // Below creates a plannerData object and stores our full roadmap to it
         // The graphViz is a way to print visualization but isn't in matrix format, want to figure out how to get this so we can better visualize the individual roadmaps
@@ -92,7 +100,7 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
         //ob::PlannerData roadMap(ss->getSpaceInformation());
         //ss->getPlannerData(roadMap);
         //roadMap.printGraphviz(std::cout);
-        
+
 
     }
     else
