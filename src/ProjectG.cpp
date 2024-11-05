@@ -22,6 +22,11 @@ og::PRM::Graph r2RM;
 og::PRM::Graph r3RM;
 og::PRM::Graph r4RM;
 
+std::vector<ompl::base::State *> r1RM_nodes;
+std::vector<ompl::base::State *> r2RM_nodes;
+std::vector<ompl::base::State *> r3RM_nodes;
+std::vector<ompl::base::State *> r4RM_nodes;
+
 void createLREnvironment(std::vector<Rectangle> & obstacles){
     Rectangle left;
     left.x = 1;
@@ -73,6 +78,30 @@ og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double
 
 }
 
+std::vector<ompl::base::State *> createPRMNodes(og::PRM::Graph roadmap){
+
+    // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
+    auto stateMap = boost::get(ompl::geometric::PRM::vertex_state_t(), roadmap);
+
+    // Iterate through graph nodes and extract states into vector
+    og::PRM::Graph::vertex_iterator v, vend;
+    std::vector<ompl::base::State *> states;
+    for (boost::tie(v, vend) = vertices(roadmap); v != vend; ++v) {
+
+        ompl::base::State *state = boost::get(stateMap, *v);
+        states.push_back(state);
+        
+        // TODO: comment out, here to ensure/demo that I extracted the x, y, coordinates 
+        double x = state->as<ob::RealVectorStateSpace::StateType>()->values[0];
+        double y = state->as<ob::RealVectorStateSpace::StateType>()->values[1];
+
+        std::cout << "x: " << x << std::endl;
+        std::cout << "y: " << y << "\n" << std::endl;
+        
+    }
+    return states;
+}
+
 void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 {
     auto prmPtr = std::make_shared<og::PRM>(ss->getSpaceInformation());
@@ -88,22 +117,25 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 
         auto path = ss->getSolutionPath();
         path.printAsMatrix(std::cout);
-
         if (robotID == "Robot 1")
         {
             r1RM = prmPtr->getRoadmap();
+            r1RM_nodes = createPRMNodes(r1RM);
         }
         if (robotID == "Robot 2")
         {
             r2RM = prmPtr->getRoadmap();
+            r2RM_nodes = createPRMNodes(r2RM);
         }
         if (robotID == "Robot 3")
         {
             r3RM = prmPtr->getRoadmap();
+            r3RM_nodes = createPRMNodes(r3RM);
         }
         if (robotID == "Robot 4")
         {
             r4RM = prmPtr->getRoadmap();
+            r4RM_nodes = createPRMNodes(r4RM);
         }
 
         // Below creates a plannerData object and stores our full roadmap to it
