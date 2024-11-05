@@ -287,6 +287,6 @@ int main(int, char **)
     std::vector<std::vector<ob::ScopedState<>>> compositeState = createCompositeRM(r1->getStateSpace(), r2->getStateSpace(), r3->getStateSpace(), r4->getStateSpace());
 
     // This print is for checking that the states in our composite 'roadmap' are equal to the ammount of states in our smallest PRM roadmap
-    // It will be ^^ -2 because the start and goal are not a part of this :)
+    // It will be a little less than that if there are collisions :)
     std::cout << compositeState.size() << std::endl;
 }
