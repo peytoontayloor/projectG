@@ -92,11 +92,11 @@ std::vector<ompl::base::State *> createPRMNodes(og::PRM::Graph roadmap){
         states.push_back(state);
         
         // TODO: comment out, here to ensure/demo that I extracted the x, y, coordinates 
-        double x = state->as<ob::RealVectorStateSpace::StateType>()->values[0];
-        double y = state->as<ob::RealVectorStateSpace::StateType>()->values[1];
+        //double x = state->as<ob::RealVectorStateSpace::StateType>()->values[0];
+        //double y = state->as<ob::RealVectorStateSpace::StateType>()->values[1];
 
-        std::cout << "x: " << x << std::endl;
-        std::cout << "y: " << y << "\n" << std::endl;
+        //std::cout << "x: " << x << std::endl;
+        //std::cout << "y: " << y << "\n" << std::endl;
         
     }
     return states;
@@ -156,6 +156,92 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
 
 }
 
+bool collisionForRobotConfigs(ob::State* r1, ob::State* r2, ob::State* r3, ob::State* r4)
+{
+    // Ensuring no collisions amongst robots for their current positions
+
+    double r1X = r1->as<ob::RealVectorStateSpace::StateType>()->values[0];
+    double r1Y = r1->as<ob::RealVectorStateSpace::StateType>()->values[1];
+
+    double r2X = r2->as<ob::RealVectorStateSpace::StateType>()->values[0];
+    double r2Y = r2->as<ob::RealVectorStateSpace::StateType>()->values[1];
+
+    double r3X = r3->as<ob::RealVectorStateSpace::StateType>()->values[0];
+    double r3Y = r3->as<ob::RealVectorStateSpace::StateType>()->values[1];
+
+    double r4X = r4->as<ob::RealVectorStateSpace::StateType>()->values[0];
+    double r4Y = r4->as<ob::RealVectorStateSpace::StateType>()->values[1];
+
+    // Probably less messy way of doing this, but leaving for now:
+    if(((r1X == r2X) and (r1Y == r2Y)) or ((r1X == r3X) and (r1Y == r3Y)) or ((r1X == r4X) and (r1Y == r4Y)))
+    {
+        return false;
+    }
+    if(((r2X == r3X) and (r2Y == r3Y)) or ((r2X == r4X) and (r2Y == r4Y)))
+    {
+        return false;
+    }
+    if(((r3X == r4X) and (r3Y == r4Y)))
+    {
+        return false;
+    }
+
+    // No collisions in position, valid configuration to add:
+    return true;
+
+}
+
+std::vector<std::vector<ob::ScopedState<>>> createCompositeRM(ob::StateSpacePtr r1Space, ob::StateSpacePtr r2Space, ob::StateSpacePtr r3Space, ob::StateSpacePtr r4Space)
+{
+    // Construct composite roadmap by going through each robots roadmap vertices, and creating a configuration of a higher dimension
+    // So, if we have 4 robots with the vertices, r1, r2, r3, r4, from each robots PRM, the composite space would be (r1, r2, r3, r4) for this point
+
+    // TODO: investigate how to handle the fact that some roadmaps have more states than others? --> I still am confused about this, should ask professor Kavraki in our meeting :) 
+
+    // Only add to composite roadmap if each position for the states are collision free amongst the robots
+    
+    // Vector of Vectors, we want the main 'list' to be composite states, and the composite states are a vector holding the configuration for each robot
+    std::vector<std::vector<ob::ScopedState<>>> compStates;
+
+    // First, loop through each of the PRM's (still not sure what to do when we have no more states in one of the robots list of configs)
+    // TODO: right now, stopping when smallest vector stops, feel like this is iffy, need to investigate.
+
+
+    //Iterators for each of the roadmaps
+    size_t i1 = 0;
+    size_t i2 = 0;
+    size_t i3 = 0;
+    size_t i4 = 0;
+
+    while((i1 < r1RM_nodes.size()) and (i2 < r2RM_nodes.size()) and (i3 < r3RM_nodes.size()) and (i4 < r4RM_nodes.size()))
+    {
+        // Now, check for collisions for the robot's positions, if no collisions, add to compStates, else continue looping
+        bool noCollision = collisionForRobotConfigs(r1RM_nodes[i1], r2RM_nodes[i2], r3RM_nodes[i3], r4RM_nodes[i4]);
+
+        if(noCollision)
+        {
+            // Now create an 'empty' vector to add to compStates:
+            std::vector<ob::ScopedState<>> tempVec;
+
+            // Add each config to it:
+            tempVec.push_back(ob::ScopedState<>(r1Space, r1RM_nodes[i1]));
+            tempVec.push_back(ob::ScopedState<>(r2Space, r2RM_nodes[i2]));
+            tempVec.push_back(ob::ScopedState<>(r3Space, r3RM_nodes[i3]));
+            tempVec.push_back(ob::ScopedState<>(r4Space, r4RM_nodes[i4]));
+
+            // Add full vector to the compState one:
+            compStates.push_back(tempVec);
+        }
+        i1++;
+        i2++;
+        i3++;
+        i4++;
+    }
+
+    return compStates;
+}
+
+
 
 int main(int, char **)
 {
@@ -195,6 +281,12 @@ int main(int, char **)
     planRobot(r3, "Robot 3");
     planRobot(r4, "Robot 4");
 
-    // TODO: now that we have these paths, going to try and get the full roadmaps for each of the robots instead of just solution paths
+    //og::PRM::Graph composite = createCompositeRM();
 
+    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
+    std::vector<std::vector<ob::ScopedState<>>> compositeState = createCompositeRM(r1->getStateSpace(), r2->getStateSpace(), r3->getStateSpace(), r4->getStateSpace());
+
+    // This print is for checking that the states in our composite 'roadmap' are equal to the ammount of states in our smallest PRM roadmap
+    // It will be ^^ -2 because the start and goal are not a part of this :)
+    std::cout << compositeState.size() << std::endl;
 }

@@ -8,7 +8,7 @@ import sys
 
 data = numpy.loadtxt('path.txt')
 fig, ax = plt.subplots()
-ax.plot(data[:, 0],data[:, 1],'.-')
+ax.plot(data[:, 0],data[:, 1],'.')
 
 wait = True
 while wait:
