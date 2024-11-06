@@ -207,7 +207,6 @@ std::vector<std::vector<ob::ScopedState<>>> createCompositeRM(ob::StateSpacePtr 
     // First, loop through each of the PRM's (still not sure what to do when we have no more states in one of the robots list of configs)
     // TODO: right now, stopping when smallest vector stops, feel like this is iffy, need to investigate.
 
-
     // Initialize indices to 0
     size_t i1 = 0;
     size_t i2 = 0;
@@ -298,20 +297,29 @@ int main(int, char **)
     compoundStateSpace.addSubspace(r3->getStateSpace(), 1);
     compoundStateSpace.addSubspace(r4->getStateSpace(), 1);
 
+    // for (int i = 0; i < compositeState.size(); ++i){
+    //     ob::CompoundState * compoundState = compoundStateSpace.allocState()->as<ob::CompoundState>();
+    //     for (int j = 0; j < compositeState[i].size(); ++j){
+    //         ob::ScopedState<> tempState = compositeState[i][j];
+    //         compoundStateSpace.getSubspace(j)->copyState(compoundState, tempState.get());
+    //     }
+    // }
+
+    // og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(compoundStateSpace);
+
     r1->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
-    // r2->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
-    // r3->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
-    // r4->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
+    // r2->setPlanner(std::make_shared<ompl::geometric::RRT>(r2->getSpaceInformation()));
+    // r3->setPlanner(std::make_shared<ompl::geometric::RRT>(r3->getSpaceInformation()));
+    // r4->setPlanner(std::make_shared<ompl::geometric::RRT>(r4->getSpaceInformation()));
 
     ob::PlannerStatus solved = r1->solve(20);
-    std::ofstream solution("path_RRT.txt");
 
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
 
         auto path = r1->getSolutionPath();
-        path.printAsMatrix(solution);
+        path.printAsMatrix(std::cout);
     }
     else{
         std::cout << "No Solution Found" << std::endl;
