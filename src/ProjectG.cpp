@@ -243,7 +243,7 @@ std::vector<std::vector<ob::ScopedState<>>> createCompositeRM(ob::StateSpacePtr 
 }
 
 
-bool isStateValid(const ob::State * state)
+bool isStateValid(const ob::SpaceInformationPtr si, const ob::State * state, std::vector<Rectangle> & obstacles)
 {
     const ob::CompoundState * cstate = state->as<ob::CompoundState>();
 
@@ -258,25 +258,9 @@ bool isStateValid(const ob::State * state)
 
     double r4X = cstate->as<ob::RealVectorStateSpace::StateType>(3)->values[0];
     double r4Y = cstate->as<ob::RealVectorStateSpace::StateType>(3)->values[1];
-
-    // Probably less messy way of doing this, but leaving for now:
-    if(((r1X == r2X) and (r1Y == r2Y)) or ((r1X == r3X) and (r1Y == r3Y)) or ((r1X == r4X) and (r1Y == r4Y)))
-    {
-        return false;
-    }
-    if(((r2X == r3X) and (r2Y == r3Y)) or ((r2X == r4X) and (r2Y == r4Y)))
-    {
-        return false;
-    }
-    if(((r3X == r4X) and (r3Y == r4Y)))
-    {
-        return false;
-    }
-
+    
     // No collisions in position, valid configuration to add:
-    return true;
-    // No collisions in position, valid configuration to add:
-    return true;
+    return si->satisfiesBounds(state) && isValidPoint(r1X, r1Y, obstacles) && isValidPoint(r2X, r2Y, obstacles) && isValidPoint(r3X, r3Y, obstacles) && isValidPoint(r4X, r4Y, obstacles);
 }
 
 
@@ -371,10 +355,12 @@ int main(int, char **)
     compound->setStartAndGoalStates(start, goal);
 
     compound->setup();
-
+    ob::SpaceInformationPtr si = compound->getSpaceInformation();
+    compound->setStateValidityChecker(
+        [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
+    );
     compound->setPlanner(std::make_shared<ompl::geometric::RRT>(compound->getSpaceInformation()));
 
-    compound->setStateValidityChecker(std::bind(isStateValid, std::placeholders::_1));
 
     ob::PlannerStatus solved = compound->solve(20);
 
