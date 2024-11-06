@@ -312,19 +312,21 @@ int main(int, char **)
     
     // std::cout << compositeState.size() << std::endl;
     // Assuming r1, r2, r3, and r4 have getStateSpace() returning StateSpacePtr for each robot
+
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
     for (int i = 0; i < compositeState.size(); ++i) {
-        ob::CompoundStateSpace * compoundStateSpace = stateSpace->as<ob::CompoundStateSpace>();
-        ob::CompoundState *compoundState = compoundStateSpace->allocState()->as<ob::CompoundState>();
+        ob::CompoundStateSpace * compStateSpace = stateSpace->as<ob::CompoundStateSpace>();     // cast to compound state space
+        ob::CompoundState *compState = compStateSpace->allocState()->as<ob::CompoundState>();   // allocate space for compound state
         for (int j = 0; j < compositeState[i].size(); ++j) {
-            ob::ScopedState<> tempState = compositeState[i][j];
-            compoundStateSpace->getSubspace(j)->copyState(compoundState->as<ob::State>(j), tempState.get());
+            ob::ScopedState<> tempState = compositeState[i][j];                                 // extract state from matrix of states
+            compStateSpace->getSubspace(j)->copyState(compState->as<ob::State>(j), tempState.get());    // copy over the state as a substate of a composite state
         }
     }
 
     og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(ob::StateSpacePtr(stateSpace));
 
+    // Set the start state using the coordinates set in the lines above
     ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
     start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
     start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
@@ -338,6 +340,7 @@ int main(int, char **)
     start->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4SX;
     start->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4SY;
 
+    // Set the goal state using the coordinates set in the lines above
     ob::ScopedState<ob::CompoundStateSpace> goal(compound->getSpaceInformation());
     goal->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1GX;
     goal->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1GY;
@@ -351,16 +354,17 @@ int main(int, char **)
     goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
     goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
 
-    // Set start and goal states
     compound->setStartAndGoalStates(start, goal);
 
-    compound->setup();
+
+    // Sets state validity checker but has no effect on running the code for some reason
     ob::SpaceInformationPtr si = compound->getSpaceInformation();
     compound->setStateValidityChecker(
         [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
     );
     compound->setPlanner(std::make_shared<ompl::geometric::RRT>(compound->getSpaceInformation()));
 
+    compound->setup();
 
     ob::PlannerStatus solved = compound->solve(20);
 
