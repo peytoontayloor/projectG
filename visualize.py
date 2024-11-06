@@ -1,5 +1,5 @@
 """
- Enter 1 (LR) or 2 (Clock) in command line to visualize path.txt 
+ Enter 1 (LR) or in command line to visualize path.txt 
 """
 import numpy
 import matplotlib.pyplot as plt
@@ -8,12 +8,15 @@ import sys
 
 data = numpy.loadtxt('path.txt')
 fig, ax = plt.subplots()
-ax.plot(data[:, 0],data[:, 1],'.')
+ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
+ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
+ax.plot(data[:, 4],data[:, 5],'.-', color='r', label='Robot3')
+ax.plot(data[:, 6],data[:, 7],'.-', color='y', label='Robot4')
 
 wait = True
 while wait:
         
-        envNum = input("Enter 1 (LR) or 2 (Clock) to visualize path.txt: ")
+        envNum = input("Enter 1 (LR) to visualize path.txt: ")
         if envNum == '1':
             ax.set_xlim(1, 7)  
             ax.set_ylim(1, 9)
@@ -31,19 +34,8 @@ while wait:
 
             wait = False
             break
-        # Grabbed from my project 4, ignore for now until clock implemented
-        elif envNum == '2':
-            print("Displaying path.txt, Pendulum robot")
-
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-10, 10) 
-            ax.set_xlabel('theta')
-            ax.set_ylabel('angular velocity') 
-            
-            wait = False
-            break
         else:
-            print("Invalid input. Enter 1 or 2.")
+            print("Invalid input. Enter 1")
 
 plt.savefig('visual.png')
 plt.show()

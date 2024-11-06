@@ -193,50 +193,38 @@ bool collisionForRobotConfigs(ob::State* r1, ob::State* r2, ob::State* r3, ob::S
 
 }
 
-std::vector<std::vector<ob::ScopedState<>>> createCompositeRM(ob::StateSpacePtr r1Space, ob::StateSpacePtr r2Space, ob::StateSpacePtr r3Space, ob::StateSpacePtr r4Space)
+std::vector<std::vector<ob::ScopedState<>>> createTensorRM(ob::StateSpacePtr r1Space, ob::StateSpacePtr r2Space, ob::StateSpacePtr r3Space, ob::StateSpacePtr r4Space)
 {
-    // Construct composite roadmap by going through each robots roadmap vertices, and creating a configuration of a higher dimension
-    // So, if we have 4 robots with the vertices, r1, r2, r3, r4, from each robots PRM, the composite space would be (r1, r2, r3, r4) for this point
 
-    // TODO: investigate how to handle the fact that some roadmaps have more states than others? --> I still am confused about this, should ask professor Kavraki in our meeting :) 
-
-    // Only add to composite roadmap if each position for the states are collision free amongst the robots
-    
-    // Vector of Vectors, we want the main 'list' to be composite states, and the composite states are a vector holding the configuration for each robot
+    // New function creating the tensor product composite states vector (now don't have to worry about PRM size)
     std::vector<std::vector<ob::ScopedState<>>> compStates;
 
-    // First, loop through each of the PRM's (still not sure what to do when we have no more states in one of the robots list of configs)
-    // TODO: right now, stopping when smallest vector stops, feel like this is iffy, need to investigate.
-
-    // Initialize indices to 0
-    size_t i1 = 0;
-    size_t i2 = 0;
-    size_t i3 = 0;
-    size_t i4 = 0;
-
-    while((i1 < r1RM_nodes.size()) and (i2 < r2RM_nodes.size()) and (i3 < r3RM_nodes.size()) and (i4 < r4RM_nodes.size()))
+    for(size_t i1 = 0; i1 < r1RM_nodes.size(); i1++)
     {
-        // Now, check for collisions for the robot's positions, if no collisions, add to compStates, else continue looping
-        bool noCollision = collisionForRobotConfigs(r1RM_nodes[i1], r2RM_nodes[i2], r3RM_nodes[i3], r4RM_nodes[i4]);
-
-        if(noCollision)
+        for(size_t i2 = 0; i2 < r2RM_nodes.size(); i2++)
         {
-            // Now create an 'empty' vector to add to compStates:
-            std::vector<ob::ScopedState<>> tempVec;
+            for(size_t i3 = 0; i3 < r3RM_nodes.size(); i3++)
+            {
+                for(size_t i4 = 0; i4 < r4RM_nodes.size(); i4++)
+                {
+                    bool noCollision = collisionForRobotConfigs(r1RM_nodes[i1], r2RM_nodes[i2], r3RM_nodes[i3], r4RM_nodes[i4]);
+                    if(noCollision)
+                    {
+                        // Now create an 'empty' vector to add to compStates:
+                        std::vector<ob::ScopedState<>> tempVec;
 
-            // Add each config to it:
-            tempVec.push_back(ob::ScopedState<>(r1Space, r1RM_nodes[i1]));
-            tempVec.push_back(ob::ScopedState<>(r2Space, r2RM_nodes[i2]));
-            tempVec.push_back(ob::ScopedState<>(r3Space, r3RM_nodes[i3]));
-            tempVec.push_back(ob::ScopedState<>(r4Space, r4RM_nodes[i4]));
+                        // Add each config to it:
+                        tempVec.push_back(ob::ScopedState<>(r1Space, r1RM_nodes[i1]));
+                        tempVec.push_back(ob::ScopedState<>(r2Space, r2RM_nodes[i2]));
+                        tempVec.push_back(ob::ScopedState<>(r3Space, r3RM_nodes[i3]));
+                        tempVec.push_back(ob::ScopedState<>(r4Space, r4RM_nodes[i4]));
 
-            // Add full vector to the compState one:
-            compStates.push_back(tempVec);
+                        // Add full vector to the compState one:
+                        compStates.push_back(tempVec);
+                    }
+                }
+            }
         }
-        i1++;
-        i2++;
-        i3++;
-        i4++;
     }
 
     return compStates;
@@ -304,21 +292,18 @@ int main(int, char **)
 
     //og::PRM::Graph composite = createCompositeRM();
 
-    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
-    std::vector<std::vector<ob::ScopedState<>>> compositeState = createCompositeRM(r1->getStateSpace(), r2->getStateSpace(), r3->getStateSpace(), r4->getStateSpace());
 
-    // This print is for checking that the states in our composite 'roadmap' are equal to the ammount of states in our smallest PRM roadmap
-    // It will be a little less than that if there are collisions :)
-    
-    // std::cout << compositeState.size() << std::endl;
-    // Assuming r1, r2, r3, and r4 have getStateSpace() returning StateSpacePtr for each robot
+    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
+    // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
+    std::vector<std::vector<ob::ScopedState<>>> compositeState = createTensorRM(r1->getStateSpace(), r2->getStateSpace(), r3->getStateSpace(), r4->getStateSpace());
+
 
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
-    for (int i = 0; i < compositeState.size(); ++i) {
+    for (size_t i = 0; i < compositeState.size(); ++i) {
         ob::CompoundStateSpace * compStateSpace = stateSpace->as<ob::CompoundStateSpace>();     // cast to compound state space
         ob::CompoundState *compState = compStateSpace->allocState()->as<ob::CompoundState>();   // allocate space for compound state
-        for (int j = 0; j < compositeState[i].size(); ++j) {
+        for (size_t j = 0; j < compositeState[i].size(); ++j) {
             ob::ScopedState<> tempState = compositeState[i][j];                                 // extract state from matrix of states
             compStateSpace->getSubspace(j)->copyState(compState->as<ob::State>(j), tempState.get());    // copy over the state as a substate of a composite state
         }
@@ -372,7 +357,7 @@ int main(int, char **)
     {
         std::cout << "Found Solution:" << std::endl;
 
-        auto path = r1->getSolutionPath();
+        auto path = compound->getSolutionPath();
         path.printAsMatrix(std::cout);
     }
     else{
