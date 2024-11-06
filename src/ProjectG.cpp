@@ -10,6 +10,7 @@
 # include <iostream>
 # include <vector>
 # include <ompl/base/PlannerStatus.h>
+# include <ompl/geometric/planners/rrt/RRT.h>
 
 # include "CollisionChecking.h"
 # include "dRRT.h"
@@ -207,7 +208,7 @@ std::vector<std::vector<ob::ScopedState<>>> createCompositeRM(ob::StateSpacePtr 
     // TODO: right now, stopping when smallest vector stops, feel like this is iffy, need to investigate.
 
 
-    //Iterators for each of the roadmaps
+    // Initialize indices to 0
     size_t i1 = 0;
     size_t i2 = 0;
     size_t i3 = 0;
@@ -288,5 +289,32 @@ int main(int, char **)
 
     // This print is for checking that the states in our composite 'roadmap' are equal to the ammount of states in our smallest PRM roadmap
     // It will be a little less than that if there are collisions :)
-    std::cout << compositeState.size() << std::endl;
+    
+    // std::cout << compositeState.size() << std::endl;
+
+    ob::CompoundStateSpace compoundStateSpace;
+    compoundStateSpace.addSubspace(r1->getStateSpace(), 1);
+    compoundStateSpace.addSubspace(r2->getStateSpace(), 1);
+    compoundStateSpace.addSubspace(r3->getStateSpace(), 1);
+    compoundStateSpace.addSubspace(r4->getStateSpace(), 1);
+
+    r1->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
+    // r2->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
+    // r3->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
+    // r4->setPlanner(std::make_shared<ompl::geometric::RRT>(r1->getSpaceInformation()));
+
+    ob::PlannerStatus solved = r1->solve(20);
+    std::ofstream solution("path_RRT.txt");
+
+    if (solved)
+    {
+        std::cout << "Found Solution:" << std::endl;
+
+        auto path = r1->getSolutionPath();
+        path.printAsMatrix(solution);
+    }
+    else{
+        std::cout << "No Solution Found" << std::endl;
+    }
+
 }
