@@ -11,12 +11,15 @@
 # include <vector>
 # include <ompl/base/PlannerStatus.h>
 # include <ompl/geometric/planners/rrt/RRT.h>
+# include <ompl/control/SimpleSetup.h>
 
 # include "CollisionChecking.h"
 # include "oldRRT.h"
+# include "dRRT.h"
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
+namespace oc = ompl::control;
 
 og::PRM::Graph r1RM;
 og::PRM::Graph r2RM;
@@ -325,6 +328,11 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
     }
 }
 
+ob::StateSamplerPtr customStateSampler(const ob::StateSpacePtr space)
+{
+
+}
+
 int main(int, char **)
 {
     std::vector<Rectangle> obstacles;
@@ -366,6 +374,73 @@ int main(int, char **)
     // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
     // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
 
-    //Create and solve a composite TENSOR roadmap of the 4 robots (naive approach)
-    compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
+    // Creates and solve a composite TENSOR roadmap of the 4 robots (naive approach)
+    // compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
+
+    // Now, we want to plan with our implicit search dRRT, using our individual PRM roadmaps (not doing tensor product)
+
+    // Make a compound state space with the spaces of our 4 robot PRMS:
+    auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
+
+    // Initialize a simple setup pointer:
+    oc::SimpleSetupPtr compound = std::make_shared<oc::SimpleSetup>(ob::StateSpacePtr(stateSpace));
+
+    // Since we have our start and goal states, set these:
+
+    ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
+    start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
+    start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
+
+    start->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2SX;
+    start->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2SY;
+
+    start->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3SX;
+    start->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3SY;
+
+    start->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4SX;
+    start->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4SY;
+
+    ob::ScopedState<ob::CompoundStateSpace> goal(compound->getSpaceInformation());
+    goal->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1GX;
+    goal->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1GY;
+
+    goal->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2GX;
+    goal->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2GY;
+
+    goal->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3GX;
+    goal->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3GY;
+
+    goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
+    goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
+
+    compound->setStartAndGoalStates(start, goal);
+
+    // TODO: skipping validity checker setup for now because I think that is something more related to dRRT?
+
+    // Set our planner as dRRT
+    compound->setPlanner(std::make_shared<ompl::control::dRRT>(compound->getSpaceInformation()));
+    
+    // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
+    // Not sure if this will work? 
+
+    // TODO: Does not work lol, need to investigate this!!
+    compound->getPlanner()->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
+    
+    compound->setup();
+
+
+    // Solve with dRRT (obviously not working yet)
+    ob::PlannerStatus solved = compound->solve(20);
+
+    if (solved)
+    {
+        std::cout << "Found Solution:" << std::endl;
+
+        auto path = compound->getSolutionPath();
+        path.printAsMatrix(std::cout);
+    }
+    else{
+        std::cout << "No Solution Found" << std::endl;
+    }
+
 }

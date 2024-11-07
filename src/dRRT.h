@@ -73,6 +73,27 @@ namespace ompl
 
             void setup() override;
 
+            std::vector<ompl::base::State *> robot1;
+            std::vector<ompl::base::State *> robot2;
+            std::vector<ompl::base::State *> robot3;
+            std::vector<ompl::base::State *> robot4;
+
+            void setRobotNodes(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4)
+            {
+                robot1 = r1;
+                robot2 = r2;
+                robot3 = r3;
+                robot4 = r4;
+
+            }
+
+            // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
+            ompl::base::State getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space);
+
+            // We need a way to uniformly sample from our vectors above
+            //RNG rng_;
+
+
         protected:
             /** Representation of a motion
 

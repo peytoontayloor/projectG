@@ -65,6 +65,35 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
+ompl::base::State getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
+{
+    // Sample a random state from each vector uniformly 
+    size_t i1 = rng_.uniformInt(0, r1.size() - 1);
+    size_t i2 = rng_.uniformInt(0, r2.size() - 1);
+    size_t i3 = rng_.uniformInt(0, r3.size() - 1);
+    size_t i4 = rng_.uniformInt(0, r4.size() - 1);
+
+    ompl::base::State r1State = r1[i1];
+    ompl::base::State r2State = r2[i2];
+    ompl::base::State r3State = r3[i3];
+    ompl::base::State r4State = r4[i4];
+                
+    // Initializing our state to return
+    ompl::base::State returnState = space.allocState();
+
+    // Casting as a compound state to add r1, r2, r3, and r4 to it
+    ompl::base::CompoundState compound = returnState->as<ompl::base::CompoundState>();
+                
+    // Copying over each of our states as elements of this compound state:
+    compound->as<ompl::base::State>(0)->copyState(r1State);
+    compound->as<ompl::base::State>(1)->copyState(r2State);
+    compound->as<ompl::base::State>(2)->copyState(r3State);
+    compound->as<ompl::base::State>(3)->copyState(r4State);
+
+    return returnState;
+
+}
+
 ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
@@ -97,6 +126,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         return ompl::base::PlannerStatus::INVALID_GOAL;
     }
 
+    // TODO: trying to change original RRT code: sampler_ = si_->allocStateSampler(); to sampling from a custom sampler
     if (!sampler_)
         sampler_ = si_->allocStateSampler();
     if (!controlSampler_)
@@ -109,7 +139,10 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
     double approxdif = std::numeric_limits<double>::infinity();
 
     auto *rmotion = new Motion(siC_); // qrand
-    ompl::base::State *rstate = rmotion->state;
+
+    //UPDATE --> our rstate needs to be of type compound
+    //ompl::base::State *rstate = rmotion->state;
+    ompl::base::CompoundState *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
     ompl::base::State *xstate = si_->allocState();
 
@@ -119,7 +152,9 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         if (rng_.uniform01() < goalBias_ && goal_s->canSample())
             goal_s->sampleGoal(rstate);
         else
-            sampler_->sampleUniform(rstate);
+            // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
+            //sampler_->sampleUniform(rstate);
+            rstate = getCompositeStates(robot1, robot2, robot3, robot4, si_->getStateSpace());
 
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion); // qnear
