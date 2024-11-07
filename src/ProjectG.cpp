@@ -13,7 +13,7 @@
 # include <ompl/geometric/planners/rrt/RRT.h>
 
 # include "CollisionChecking.h"
-# include "dRRT.h"
+# include "RRT.h"
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
