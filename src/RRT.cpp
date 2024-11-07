@@ -13,7 +13,7 @@
 #include <math.h>
 #include <cmath>
 
-#include "dRRT.h"
+#include "RRT.h"
 
 ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
 {
