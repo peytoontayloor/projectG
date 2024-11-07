@@ -13,7 +13,7 @@
 # include <ompl/geometric/planners/rrt/RRT.h>
 
 # include "CollisionChecking.h"
-# include "RRT.h"
+# include "oldRRT.h"
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -251,50 +251,10 @@ bool isStateValid(const ob::SpaceInformationPtr si, const ob::State * state, std
     return si->satisfiesBounds(state) && isValidPoint(r1X, r1Y, obstacles) && isValidPoint(r2X, r2Y, obstacles) && isValidPoint(r3X, r3Y, obstacles) && isValidPoint(r4X, r4Y, obstacles);
 }
 
-
-int main(int, char **)
+void compositeSolve(og::SimpleSetupPtr r1, og::SimpleSetupPtr r2, og::SimpleSetupPtr r3, og::SimpleSetupPtr r4, 
+double r1SX, double r1SY, double r1GX, double r1GY, double r2SX, double r2SY, double r2GX, double r2GY, 
+double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, double r4GX, double r4GY, std::vector<Rectangle> obstacles)
 {
-    std::vector<Rectangle> obstacles;
-    createLREnvironment(obstacles);
-    
-    // Creating the varius robot start and goal states: 
-    // Right now, doing the left/right swap from example, since just PRM right now, pretty simple solutions
-
-    double r1SX = 2.0;
-    double r1SY = 8.0;
-    double r1GX = 6.0;
-    double r1GY = 8.0;
-
-    double r2SX = 6.0;
-    double r2SY = 8.0;
-    double r2GX = 2.0;
-    double r2GY = 8.0;
-
-    double r3SX = 2.0;
-    double r3SY = 2.0;
-    double r3GX = 6.0;
-    double r3GY = 2.0;
-
-    double r4SX = 6.0;
-    double r4SY = 2.0;
-    double r4GX = 2.0;
-    double r4GY = 2.0;
-
-    og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
-    og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
-    og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
-    og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
-
-    planRobot(r1, "Robot 1");
-    planRobot(r2, "Robot 2");
-    planRobot(r3, "Robot 3");
-    planRobot(r4, "Robot 4");
-
-    //og::PRM::Graph composite = createCompositeRM();
-
-
-    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
-    // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
     std::vector<std::vector<ob::ScopedState<>>> compositeState = createTensorRM(r1->getStateSpace(), r2->getStateSpace(), r3->getStateSpace(), r4->getStateSpace());
 
 
@@ -363,5 +323,49 @@ int main(int, char **)
     else{
         std::cout << "No Solution Found" << std::endl;
     }
+}
 
+int main(int, char **)
+{
+    std::vector<Rectangle> obstacles;
+    createLREnvironment(obstacles);
+    
+    // Creating the varius robot start and goal states: 
+    // Right now, doing the left/right swap from example, since just PRM right now, pretty simple solutions
+
+    double r1SX = 2.0;
+    double r1SY = 8.0;
+    double r1GX = 6.0;
+    double r1GY = 8.0;
+
+    double r2SX = 6.0;
+    double r2SY = 8.0;
+    double r2GX = 2.0;
+    double r2GY = 8.0;
+
+    double r3SX = 2.0;
+    double r3SY = 2.0;
+    double r3GX = 6.0;
+    double r3GY = 2.0;
+
+    double r4SX = 6.0;
+    double r4SY = 2.0;
+    double r4GX = 2.0;
+    double r4GY = 2.0;
+
+    og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
+    og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
+    og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
+    og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
+
+    planRobot(r1, "Robot 1");
+    planRobot(r2, "Robot 2");
+    planRobot(r3, "Robot 3");
+    planRobot(r4, "Robot 4");
+
+    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
+    // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
+
+    //Create and solve a composite TENSOR roadmap of the 4 robots (naive approach)
+    compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
 }

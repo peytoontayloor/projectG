@@ -13,24 +13,24 @@
 #include <math.h>
 #include <cmath>
 
-#include "RRT.h"
+#include "oldRRT.h"
 
-ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
+ompl::control::oldRRT::oldRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "oldRRT")
 {
     specs_.approximateSolutions = true;
     siC_ = si.get();
 
-    Planner::declareParam<double>("goal_bias", this, &dRRT::setGoalBias, &dRRT::getGoalBias, "0.:.05:1.");
-    Planner::declareParam<bool>("intermediate_states", this, &dRRT::setIntermediateStates, &dRRT::getIntermediateStates,
+    Planner::declareParam<double>("goal_bias", this, &oldRRT::setGoalBias, &oldRRT::getGoalBias, "0.:.05:1.");
+    Planner::declareParam<bool>("intermediate_states", this, &oldRRT::setIntermediateStates, &oldRRT::getIntermediateStates,
                                 "0,1");
 }
 
-ompl::control::dRRT::~dRRT()
+ompl::control::oldRRT::~oldRRT()
 {
     freeMemory();
 }
 
-void ompl::control::dRRT::setup()
+void ompl::control::oldRRT::setup()
 {
     ompl::base::Planner::setup();
     if (!nn_)
@@ -38,7 +38,7 @@ void ompl::control::dRRT::setup()
     nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
 }
 
-void ompl::control::dRRT::clear()
+void ompl::control::oldRRT::clear()
 {
     ompl::base::Planner::clear();
     sampler_.reset();
@@ -49,7 +49,7 @@ void ompl::control::dRRT::clear()
     lastGoalMotion_ = nullptr;
 }
 
-void ompl::control::dRRT::freeMemory()
+void ompl::control::oldRRT::freeMemory()
 {
     if (nn_)
     {
@@ -66,7 +66,7 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
-ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
+ompl::base::PlannerStatus ompl::control::oldRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
     ompl::base::Goal *goal = pdef_->getGoal().get();
@@ -267,7 +267,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
     return {solved, approximate};
 }
 
-void ompl::control::dRRT::getPlannerData(base::PlannerData &data) const
+void ompl::control::oldRRT::getPlannerData(base::PlannerData &data) const
 {
     ompl::base::Planner::getPlannerData(data);
 

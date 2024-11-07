@@ -1,6 +1,6 @@
 
-#ifndef OMPL_CONTROL_PLANNERS_RRT_RRT_
-#define OMPL_CONTROL_PLANNERS_RRT_RRT_
+#ifndef OMPL_CONTROL_PLANNERS_oldRRT_oldRRT_
+#define OMPL_CONTROL_PLANNERS_oldRRT_oldRRT_
 
 #include "ompl/control/planners/PlannerIncludes.h"
 #include "ompl/datastructures/NearestNeighbors.h"
@@ -11,13 +11,13 @@ namespace ompl
     {
 
         /** discrete Rapidly-exploring Random Tree */
-        class dRRT : public base::Planner
+        class oldRRT : public base::Planner
         {
         public:
             /** Constructor */
-            dRRT(const SpaceInformationPtr &si);
+            oldRRT(const SpaceInformationPtr &si);
 
-            ~dRRT() override;
+            ~oldRRT() override;
 
             /** Continue solving for some amount of time. Return true if solution was found. */
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;
