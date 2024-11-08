@@ -66,19 +66,19 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
-ompl::base::State * ompl::control::dRRT::getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
+ompl::base::State * ompl::control::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
 {
     std::cout << "starting getCompositeStates" << std::endl;
     // Sample a random state from each vector uniformly 
-    int i1 = rng_.uniformInt(0, r1.size() - 1);
-    int i2 = rng_.uniformInt(0, r2.size() - 1);
-    int i3 = rng_.uniformInt(0, r3.size() - 1);
-    int i4 = rng_.uniformInt(0, r4.size() - 1);
+    int i1 = rng_.uniformInt(0, robot1.size() - 1);
+    int i2 = rng_.uniformInt(0, robot2.size() - 1);
+    int i3 = rng_.uniformInt(0, robot3.size() - 1);
+    int i4 = rng_.uniformInt(0, robot4.size() - 1);
 
-    ompl::base::State * r1State = r1[i1];
-    ompl::base::State * r2State = r2[i2];
-    ompl::base::State * r3State = r3[i3];
-    ompl::base::State * r4State = r4[i4];
+    ompl::base::State * r1State = robot1[i1];
+    ompl::base::State * r2State = robot2[i2];
+    ompl::base::State * r3State = robot3[i3];
+    ompl::base::State * r4State = robot4[i4];
                 
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
@@ -92,6 +92,7 @@ ompl::base::State * ompl::control::dRRT::getCompositeStates(std::vector<ompl::ba
     compound->getSubspace(2)->copyState(returnState, r3State);   
     compound->getSubspace(3)->copyState(returnState, r4State);  
 
+    std::cout << "done with getCompositeStates" << std::endl;
     // compound->as<ompl::base::State>(1)->copyState(r1State); 
     // compound->as<ompl::base::State>(1)->copyState(r2State);
     // compound->as<ompl::base::State>(2)->copyState(r3State);
@@ -164,32 +165,33 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         else
             // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
             //sampler_->sampleUniform(rstate);
-            rstate = getCompositeStates(robot1, robot2, robot3, robot4, si_->getStateSpace());
+            rstate = getCompositeStates(si_->getStateSpace());
 
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion); // qnear
 
-        // TO DO: temporarily commenting out oracle section until we fix everything else
-        
+        /* TODO: temporarily commenting out oracle section until we fix everything else
 
-        /* find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand*/
-        // std::vector<Motion *> randnbrs;
-        // std::size_t k = 5;
-        // nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
-        // Motion *newmotion;
-        // double angle = std::numeric_limits<double>::infinity();
-        // for (size_t i = 0; i < randnbrs.size(); i++){
-        //     Motion * tempnew_motion = randnbrs[i];
-        //     double d = distanceFunction(nmotion, tempnew_motion);
-        //     double n = distanceFunction(rmotion, tempnew_motion);
-        //     double m = distanceFunction(nmotion, rmotion); 
-        //     double numerator = d * d + m * m - n * n;
-        //     double denominator = 2 * d * m;
-        //     double temp_angle = acos(numerator / denominator);
-        //     if (temp_angle < angle){
-        //         newmotion = tempnew_motion;
-        //     }
-        // }
+        // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
+        std::vector<Motion *> randnbrs;
+        std::size_t k = 5;
+        nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
+        Motion *newmotion;
+        double angle = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < randnbrs.size(); i++){
+            Motion * tempnew_motion = randnbrs[i];
+            double d = distanceFunction(nmotion, tempnew_motion);
+            double n = distanceFunction(rmotion, tempnew_motion);
+            double m = distanceFunction(nmotion, rmotion); 
+            double numerator = d * d + m * m - n * n;
+            double denominator = 2 * d * m;
+            double temp_angle = acos(numerator / denominator);
+            if (temp_angle < angle){
+                newmotion = tempnew_motion;
+            }
+        }
+
+        */
 
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
@@ -294,10 +296,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         /* set the solution path */
         auto path(std::make_shared<PathControl>(si_));
         for (int i = mpath.size() - 1; i >= 0; --i)
-            if (mpath[i]->parent)
-                path->append(mpath[i]->state, mpath[i]->control, mpath[i]->steps * siC_->getPropagationStepSize());
-            else
-                path->append(mpath[i]->state);
+            path->append(mpath[i]->state);
         solved = true;
         pdef_->addSolutionPath(path, approximate, approxdif, getName());
     }
