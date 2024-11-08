@@ -2,6 +2,7 @@
 # include <ompl/geometric/planners/prm/PRM.h>
 # include <ompl/base/SpaceInformation.h>
 # include <ompl/base/spaces/RealVectorStateSpace.h>
+# include <ompl/control/spaces/RealVectorControlSpace.h>
 # include <ompl/geometric/SimpleSetup.h>
 # include <ompl/base/ScopedState.h>
 # include <ompl/base/spaces/SE3StateSpace.h>
@@ -382,8 +383,11 @@ int main(int, char **)
     // Make a compound state space with the spaces of our 4 robot PRMS:
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
+
+    auto control_space(std::make_shared<oc::RealVectorControlSpace>(stateSpace, 0));
+
     // Initialize a simple setup pointer:
-    og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(ob::StateSpacePtr(stateSpace));
+    oc::SimpleSetupPtr compound = std::make_shared<oc::SimpleSetup>(control_space);
 
     // Since we have our start and goal states, set these:
 

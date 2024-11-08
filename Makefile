@@ -15,5 +15,5 @@ clean:
 %.o: src/%.cpp
 	$(CXX) -c $(CXX_FLAGS) $(INCLUDE_FLAGS) $< -o $@
 
-ProjectG: ProjectG.o oldRRT.o CollisionChecking.o Robot.o
+ProjectG: ProjectG.o dRRT.o oldRRT.o CollisionChecking.o Robot.o
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) -Lsrc/. -o $@ $^ $(LD_FLAGS)
