@@ -6,23 +6,7 @@ namespace ompl
 {
     namespace geometric
     {
-        /**
-           @anchor gdRRT
-           @par Short description
-           dRRT is a tree-based motion planner that uses the following
-           idea: dRRT samples a random state @b qr in the state space,
-           then finds the state @b qc among the previously seen states
-           that is closest to @b qr and expands from @b qc towards @b
-           qr, until a state @b qm is reached. @b qm is then added to
-           the exploration tree.
-           @par External documentation
-           J. Kuffner and S.M. LaValle, dRRT-connect: An efficient approach to single-query path planning, in <em>Proc.
-           2000 IEEE Intl. Conf. on Robotics and Automation</em>, pp. 995–1001, Apr. 2000. DOI:
-           [10.1109/ROBOT.2000.844730](http://dx.doi.org/10.1109/ROBOT.2000.844730)<br>
-           [[PDF]](http://ieeexplore.ieee.org/ielx5/6794/18246/00844730.pdf?tp=&arnumber=844730&isnumber=18246)
-           [[more]](http://msl.cs.uiuc.edu/~lavalle/dRRTpubs.html)
-        */
-
+        
         /** \brief Rapidly-exploring Random Trees */
         class dRRT : public base::Planner
         {

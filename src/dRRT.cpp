@@ -178,8 +178,10 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         */
 
-        /* find state to add */
+        // TODO: SEGFAULT HAPPENING HERE 
+        // Sometimes (rarely) there is no segfault, but when there is I am pretty sure it happens here (line 183)
         double d = si_->distance(nmotion->state, rstate);
+        
         if (d > maxDistance_)
         {
             si_->getStateSpace()->interpolate(nmotion->state, rstate, maxDistance_ / d, xstate);
