@@ -3,6 +3,8 @@
 #include <limits>
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/tools/config/SelfConfig.h"
+#include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/State.h>
 
 #include "dRRT.h"
 
@@ -150,6 +152,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
             //sampler_->sampleUniform(rstate);
             rstate = getCompositeStates(si_->getStateSpace());
+            // sampler_->addSampler()
 
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion);
@@ -180,7 +183,8 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         // TODO: SEGFAULT HAPPENING HERE 
         // Sometimes (rarely) there is no segfault, but when there is I am pretty sure it happens here (line 183)
-        double d = si_->distance(nmotion->state, rstate);
+        double d = customDistanceFunction(nmotion->state, rstate);
+        std::cout << d << std::endl;
         
         if (d > maxDistance_)
         {

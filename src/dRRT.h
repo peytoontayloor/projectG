@@ -1,6 +1,10 @@
 /* Author: Ioan Sucan */
 #include "ompl/datastructures/NearestNeighbors.h"
 #include "ompl/geometric/planners/PlannerIncludes.h"
+#include <ompl/base/State.h>
+#include <math.h>
+#include <cmath>
+
 
 namespace ompl
 {
@@ -86,6 +90,66 @@ namespace ompl
 
             }
 
+            double euclideanDistance(double xCoordA, double yCoordA, double xCoordB, double yCoordB)
+            {
+                return sqrt(std::pow(xCoordA - xCoordB, 2) + std::pow(yCoordA - yCoordB, 2));
+            }
+
+            double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
+
+                std::cout << "within distance function" << std::endl;
+
+                const ompl::base::CompoundState * a_cstate = a->as<ompl::base::CompoundState>();
+                const ompl::base::CompoundState * b_cstate = b->as<ompl::base::CompoundState>();
+
+                std::cout << "after cast to compound state" << std::endl;
+
+                // Computing Euclidean distance of r1 
+                double a_r1x_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+                double a_r1y_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
+
+                std::cout << a_cstate << std::endl; 
+                std::cout << "accessing a's robot coords" << std::endl; 
+
+                double b_r1x_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+                double b_r1y_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
+
+                std::cout << "accessing first robot coords" << std::endl;
+                double r1Distance = euclideanDistance(a_r1x_coord, a_r1y_coord, b_r1x_coord, b_r1y_coord);
+
+                // Computing Euclidean distance of r2
+                double a_r2x_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
+                double a_r2y_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
+
+                double b_r2x_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
+                double b_r2y_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
+
+                double r2Distance = euclideanDistance(a_r2x_coord, a_r2y_coord, b_r2x_coord, b_r2y_coord);
+
+                // Computing Euclidean distance of r3
+                double a_r3x_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
+                double a_r3y_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];
+
+                double b_r3x_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
+                double b_r3y_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];
+
+                double r3Distance = euclideanDistance(a_r3x_coord, a_r3y_coord, b_r3x_coord, b_r3y_coord);
+
+                // Computing Euclidean distance of r4
+                double a_r4x_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
+                double a_r4y_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
+
+                double b_r4x_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
+                double b_r4y_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
+
+                double r4Distance = euclideanDistance(a_r4x_coord, a_r4y_coord, b_r4x_coord, b_r4y_coord);
+                
+                std::cout << r1Distance + r2Distance + r3Distance + r4Distance << std::endl;
+                // Returns sum of euclidean distances
+                return r1Distance + r2Distance + r3Distance + r4Distance;
+            }
+
+
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
             ompl::base::State * getCompositeStates(ompl::base::StateSpacePtr space);
 
@@ -121,6 +185,7 @@ namespace ompl
             {
                 return si_->distance(a->state, b->state);
             }
+
 
             /** \brief State sampler */
             base::StateSamplerPtr sampler_;
