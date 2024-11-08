@@ -88,7 +88,7 @@ namespace ompl
             }
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
-            ompl::base::State getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space);
+            ompl::base::State * getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space);
 
             // We need a way to uniformly sample from our vectors above
             //RNG rng_;

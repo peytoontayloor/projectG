@@ -66,30 +66,35 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
-ompl::base::State ompl::control::dRRT::getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
+ompl::base::State * ompl::control::dRRT::getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
 {
     // Sample a random state from each vector uniformly 
-    size_t i1 = rng_.uniformInt(0, r1.size() - 1);
-    size_t i2 = rng_.uniformInt(0, r2.size() - 1);
-    size_t i3 = rng_.uniformInt(0, r3.size() - 1);
-    size_t i4 = rng_.uniformInt(0, r4.size() - 1);
+    int i1 = rng_.uniformInt(0, r1.size() - 1);
+    int i2 = rng_.uniformInt(0, r2.size() - 1);
+    int i3 = rng_.uniformInt(0, r3.size() - 1);
+    int i4 = rng_.uniformInt(0, r4.size() - 1);
 
-    ompl::base::State r1State = r1[i1];
-    ompl::base::State r2State = r2[i2];
-    ompl::base::State r3State = r3[i3];
-    ompl::base::State r4State = r4[i4];
+    ompl::base::State * r1State = r1[i1];
+    ompl::base::State * r2State = r2[i2];
+    ompl::base::State * r3State = r3[i3];
+    ompl::base::State * r4State = r4[i4];
                 
-    // Initializing our state to return
-    ompl::base::State returnState = space.allocState();
-
     // Casting as a compound state to add r1, r2, r3, and r4 to it
-    ompl::base::CompoundState compound = returnState->as<ompl::base::CompoundState>();
+    ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
+
+    // // Initializing our state to return
+    ompl::base::State * returnState = compound->allocState();
                 
-    // Copying over each of our states as elements of this compound state:
-    compound->as<ompl::base::State>(0)->copyState(r1State);
-    compound->as<ompl::base::State>(1)->copyState(r2State);
-    compound->as<ompl::base::State>(2)->copyState(r3State);
-    compound->as<ompl::base::State>(3)->copyState(r4State);
+    // // Copying over each of our states as elements of this compound state:
+    compound->getSubspace(0)->copyState(returnState, r1State);   
+    compound->getSubspace(1)->copyState(returnState, r2State);   
+    compound->getSubspace(2)->copyState(returnState, r3State);   
+    compound->getSubspace(3)->copyState(returnState, r4State);  
+
+    // compound->as<ompl::base::State>(1)->copyState(r1State); 
+    // compound->as<ompl::base::State>(1)->copyState(r2State);
+    // compound->as<ompl::base::State>(2)->copyState(r3State);
+    // compound->as<ompl::base::State>(3)->copyState(r4State);
 
     return returnState;
 
@@ -142,8 +147,8 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
     auto *rmotion = new Motion(siC_); // qrand
 
     //UPDATE --> our rstate needs to be of type compound
-    //ompl::base::State *rstate = rmotion->state;
-    ompl::base::CompoundState *rstate = rmotion->state;
+    ompl::base::State *rstate = rmotion->state;
+    // ompl::base::CompoundState *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
     ompl::base::State *xstate = si_->allocState();
 

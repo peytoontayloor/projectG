@@ -265,11 +265,19 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
     for (size_t i = 0; i < compositeState.size(); ++i) {
-        ob::CompoundStateSpace * compStateSpace = stateSpace->as<ob::CompoundStateSpace>();     // cast to compound state space
-        ob::CompoundState *compState = compStateSpace->allocState()->as<ob::CompoundState>();   // allocate space for compound state
+        // cast to compound state space
+        ob::CompoundStateSpace * compStateSpace = stateSpace->as<ob::CompoundStateSpace>();     
+
+        // allocate space for compound state
+        ob::CompoundState *compState = compStateSpace->allocState()->as<ob::CompoundState>();   
+
         for (size_t j = 0; j < compositeState[i].size(); ++j) {
-            ob::ScopedState<> tempState = compositeState[i][j];                                 // extract state from matrix of states
-            compStateSpace->getSubspace(j)->copyState(compState->as<ob::State>(j), tempState.get());    // copy over the state as a substate of a composite state
+
+            // extract state from matrix of states
+            ob::ScopedState<> tempState = compositeState[i][j];
+
+            // copy over the state as a substate of a composite state                                
+            compStateSpace->getSubspace(j)->copyState(compState->as<ob::State>(j), tempState.get());    
         }
     }
 
