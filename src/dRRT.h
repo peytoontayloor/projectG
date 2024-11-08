@@ -14,7 +14,7 @@ namespace ompl
         {
         public:
             /** Constructor */
-            dRRT(const SpaceInformationPtr &si);
+            dRRT(const ompl::base::SpaceInformationPtr &si);
 
             ~dRRT() override;
 

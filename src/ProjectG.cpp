@@ -310,7 +310,7 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
     compound->setStateValidityChecker(
         [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
     );
-    compound->setPlanner(std::make_shared<ompl::geometric::RRT>(compound->getSpaceInformation()));
+    compound->setPlanner(std::make_shared<ompl::geometric::RRT>(si));
 
     compound->setup();
 
@@ -383,7 +383,7 @@ int main(int, char **)
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
     // Initialize a simple setup pointer:
-    oc::SimpleSetupPtr compound = std::make_shared<oc::SimpleSetup>(ob::StateSpacePtr(stateSpace));
+    og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(ob::StateSpacePtr(stateSpace));
 
     // Since we have our start and goal states, set these:
 
@@ -418,13 +418,14 @@ int main(int, char **)
     // TODO: skipping validity checker setup for now because I think that is something more related to dRRT?
 
     // Set our planner as dRRT
-    compound->setPlanner(std::make_shared<ompl::control::dRRT>(compound->getSpaceInformation()));
+    auto planner = std::make_shared<ompl::control::dRRT>(compound->getSpaceInformation());
+    compound->setPlanner(planner);
     
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
-    // Not sure if this will work? 
+    // Not sure if this will work? --> should work in my opinion
 
-    // TODO: Does not work lol, need to investigate this!!
-    compound->getPlanner()->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
+    // ADDED planner and set robot nodes --> works now
+    planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
     
     compound->setup();
 

@@ -14,7 +14,7 @@
 
 #include "RRT.h"
 
-ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
+ompl::control::dRRT::dRRT(const ompl::base::SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
 {
     specs_.approximateSolutions = true;
     siC_ = si.get();
@@ -65,7 +65,7 @@ void ompl::control::dRRT::freeMemory()
     }
 }
 
-ompl::base::State getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
+ompl::base::State ompl::control::dRRT::getCompositeStates()
 {
     // Sample a random state from each vector uniformly 
     size_t i1 = rng_.uniformInt(0, r1.size() - 1);
@@ -79,7 +79,7 @@ ompl::base::State getCompositeStates(std::vector<ompl::base::State *> r1, std::v
     ompl::base::State r4State = r4[i4];
                 
     // Initializing our state to return
-    ompl::base::State returnState = space.allocState();
+    ompl::base::State returnState = si_->getStateSpace()->allocState();
 
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundState compound = returnState->as<ompl::base::CompoundState>();
@@ -154,7 +154,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         else
             // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
             //sampler_->sampleUniform(rstate);
-            rstate = getCompositeStates(robot1, robot2, robot3, robot4, si_->getStateSpace());
+            rstate = getCompositeStates();
 
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion); // qnear
