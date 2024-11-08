@@ -97,24 +97,17 @@ namespace ompl
 
             double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
 
-                // std::cout << "within distance function" << std::endl;
-
+                // Cast to compound state from ompl::base::State
                 const ompl::base::CompoundState * a_cstate = a->as<ompl::base::CompoundState>();
                 const ompl::base::CompoundState * b_cstate = b->as<ompl::base::CompoundState>();
-
-                // std::cout << "after cast to compound state" << std::endl;
 
                 // Computing Euclidean distance of r1 
                 double a_r1x_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
                 double a_r1y_coord = a_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
 
-                // std::cout << a_cstate << std::endl; 
-                // std::cout << "accessing a's robot coords" << std::endl; 
-
                 double b_r1x_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
                 double b_r1y_coord = b_cstate->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
 
-                // std::cout << "accessing first robot coords" << std::endl;
                 double r1Distance = euclideanDistance(a_r1x_coord, a_r1y_coord, b_r1x_coord, b_r1y_coord);
 
                 // Computing Euclidean distance of r2
@@ -144,7 +137,6 @@ namespace ompl
 
                 double r4Distance = euclideanDistance(a_r4x_coord, a_r4y_coord, b_r4x_coord, b_r4y_coord);
                 
-                // std::cout << r1Distance + r2Distance + r3Distance + r4Distance << std::endl;
                 // Returns sum of euclidean distances
                 return r1Distance + r2Distance + r3Distance + r4Distance;
             }

@@ -16,7 +16,6 @@
 #include <ompl/control/ODESolver.h>
 
 # include "CollisionChecking.h"
-# include "oldRRT.h"
 # include "dRRT.h"
 
 namespace ob = ompl::base;
@@ -198,31 +197,6 @@ bool collisionForRobotConfigs(ob::State* r1, ob::State* r2, ob::State* r3, ob::S
 
 }
 
-// The code for the carODE primarily comes from https://ompl.kavrakilab.org/odeint.html
-void carODE(const ompl::control::ODESolver::StateType & q/* q */, const ompl::control::Control * c/* control */,
-            ompl::control::ODESolver::StateType & qdot/* qdot */)
-{
-    // Retrieve control values.  Angular velocity is the first entry, acceleration is second.
-    const double *u = c->as<oc::RealVectorControlSpace::ControlType>()->values;
-    const double ang_velocity = u[0];
-    const double acceleration = u[1];
- 
-    // Retrieve the current orientation of the car.
-    // 0: x (x-position)
-    // 1: y (y-position)
-    // 2: theta (heading)
-    // 3: v (velocity)
-    const double theta = q[2];
-    const double velocity = q[3];
- 
-    // Ensure qdot is the same size as q.  Zero out all values.
-    qdot.resize(q.size(), 0);
- 
-    qdot[0] = velocity * cos(theta);    // x-dot
-    qdot[1] = velocity * sin(theta);    // y-dot
-    qdot[2] = (ang_velocity > M_PI/2) ? M_PI/2 : (ang_velocity < -M_PI/2) ? -M_PI/2 : ang_velocity;             // omega set limits to pi/2
-    qdot[3] = acceleration;             // v-dot
-}
 
 std::vector<std::vector<ob::ScopedState<>>> createTensorRM(ob::StateSpacePtr r1Space, ob::StateSpacePtr r2Space, ob::StateSpacePtr r3Space, ob::StateSpacePtr r4Space)
 {
@@ -422,7 +396,6 @@ int main(int, char **)
     og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
 
     // Since we have our start and goal states, set these:
-
     ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
     start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
     start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
@@ -451,25 +424,23 @@ int main(int, char **)
 
     compound->setStartAndGoalStates(start, goal);
 
-    // TODO: skipping validity checker setup for now because I think that is something more related to dRRT?
+    // Retrieving space information pointer from simple setup
+    ob::SpaceInformationPtr si = compound->getSpaceInformation();
+
+    // TODO: uncomment or comment it out to show the different behaviors with obstacles and without obstacles
+    // compound->setStateValidityChecker(
+    //     [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
+    // );
 
     // Set our planner as dRRT
-    ob::SpaceInformationPtr si = compound->getSpaceInformation();
     auto planner = std::make_shared<og::dRRT>(si);
-    planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
-    
-    // Setting arbitrary ode solver just to get dRRT to run
-    /*oc::ODESolverPtr odeSolver(new oc::ODEBasicSolver<>(si,&carODE));
-    si->setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
-    si->setPropagationStepSize(0.05);*/
-
-    compound->setPlanner(planner);
     
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
-    // Not sure if this will work? --> should work in my opinion
+    planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
 
     // ADDED planner and set robot nodes --> works now
-    
+    compound->setPlanner(planner);
+
     compound->setup();
 
 
