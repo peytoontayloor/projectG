@@ -83,7 +83,7 @@ ompl::base::State * ompl::control::dRRT::getCompositeStates(ompl::base::StateSpa
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
 
-    // // Initializing our state to return
+    // Initializing our state to return
     ompl::base::State * returnState = compound->allocState();
                 
     // // Copying over each of our states as elements of this compound state:
@@ -167,6 +167,10 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
             //sampler_->sampleUniform(rstate);
             rstate = getCompositeStates(si_->getStateSpace());
 
+        std::cout << rstate << std::endl;
+
+        
+        std::cout << "before nearest neighbor" << std::endl;
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion); // qnear
 
@@ -193,11 +197,13 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
 
         */
 
+        std::cout << "before control distance" << std::endl;
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
 
         if (addIntermediateStates_)
         {
+            std::cout << "within intermediate states" << std::endl;
             // this code is contributed by Jennifer Barry
             std::vector<ompl::base::State *> pstates;
             cd = siC_->propagateWhileValid(nmotion->state, rctrl, cd, pstates, true);
@@ -212,6 +218,8 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
                     /* create a motion */
                     auto *motion = new Motion();
                     motion->state = pstates[p];
+
+                    std::cout << "after pstates" << std::endl;
                     // we need multiple copies of rctrl
                     motion->control = siC_->allocControl();
                     siC_->copyControl(motion->control, rctrl);
@@ -250,7 +258,10 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
             {
                 /* create a motion */
                 auto *motion = new Motion(siC_);
+
+
                 si_->copyState(motion->state, rmotion->state);
+                std::cout << "after copyState" << std::endl;
                 siC_->copyControl(motion->control, rctrl);
                 motion->steps = cd;
                 motion->parent = nmotion;
@@ -258,6 +269,7 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
                 nn_->add(motion);
                 double dist = 0.0;
                 bool solv = goal->isSatisfied(motion->state, &dist);
+                std::cout << "goal is satisfied" << std::endl;
                 if (solv)
                 {
                     approxdif = dist;
@@ -294,21 +306,28 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         }
 
         /* set the solution path */
+        std::cout << "before path control" << std::endl;
         auto path(std::make_shared<PathControl>(si_));
         for (int i = mpath.size() - 1; i >= 0; --i)
             path->append(mpath[i]->state);
+        std::cout << "appending states" << std::endl;
         solved = true;
         pdef_->addSolutionPath(path, approximate, approxdif, getName());
+
     }
 
+    std::cout << "before free states" << std::endl;
     if (rmotion->state)
         si_->freeState(rmotion->state);
     if (rmotion->control)
         siC_->freeControl(rmotion->control);
     delete rmotion;
     si_->freeState(xstate);
+    std::cout << nn_->size() << std::endl;
+    std::cout << "freeing states is satisfied" << std::endl;
 
     OMPL_INFORM("%s: Created %u states", getName().c_str(), nn_->size());
+    std::cout << "didn't create states?" << std::endl;
 
     return {solved, approximate};
 }
