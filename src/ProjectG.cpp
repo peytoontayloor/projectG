@@ -419,17 +419,17 @@ int main(int, char **)
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
 
 
-    auto control_space(std::make_shared<oc::RealVectorControlSpace>(stateSpace,2));
+    /*auto control_space(std::make_shared<oc::RealVectorControlSpace>(stateSpace,2));
     ob::RealVectorBounds control_bounds(2);
     control_bounds.setLow(0, -10);
     control_bounds.setHigh(0, 10);
     control_bounds.setLow(1, -10);
     control_bounds.setHigh(1, 10);
 
-    control_space->setBounds(control_bounds);
+    control_space->setBounds(control_bounds);*/
 
     // Initialize a simple setup pointer:
-    oc::SimpleSetupPtr compound = std::make_shared<oc::SimpleSetup>(control_space);
+    og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
 
     // Since we have our start and goal states, set these:
 
@@ -464,14 +464,14 @@ int main(int, char **)
     // TODO: skipping validity checker setup for now because I think that is something more related to dRRT?
 
     // Set our planner as dRRT
-    oc::SpaceInformationPtr si = compound->getSpaceInformation();
-    auto planner = std::make_shared<ompl::control::dRRT>(si);
+    ob::SpaceInformationPtr si = compound->getSpaceInformation();
+    auto planner = std::make_shared<og::dRRT>(si);
     planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
     
     // Setting arbitrary ode solver just to get dRRT to run
-    oc::ODESolverPtr odeSolver(new oc::ODEBasicSolver<>(si,&carODE));
+    /*oc::ODESolverPtr odeSolver(new oc::ODEBasicSolver<>(si,&carODE));
     si->setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
-    si->setPropagationStepSize(0.05);
+    si->setPropagationStepSize(0.05);*/
 
     compound->setPlanner(planner);
     

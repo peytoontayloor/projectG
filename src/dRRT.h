@@ -1,66 +1,81 @@
-#ifndef OMPL_CONTROL_PLANNERS_RRT_RRT_
-#define OMPL_CONTROL_PLANNERS_RRT_RRT_
-
-#include "ompl/control/planners/PlannerIncludes.h"
+/* Author: Ioan Sucan */
 #include "ompl/datastructures/NearestNeighbors.h"
+#include "ompl/geometric/planners/PlannerIncludes.h"
 
 namespace ompl
 {
-    namespace control
+    namespace geometric
     {
+        /**
+           @anchor gdRRT
+           @par Short description
+           dRRT is a tree-based motion planner that uses the following
+           idea: dRRT samples a random state @b qr in the state space,
+           then finds the state @b qc among the previously seen states
+           that is closest to @b qr and expands from @b qc towards @b
+           qr, until a state @b qm is reached. @b qm is then added to
+           the exploration tree.
+           @par External documentation
+           J. Kuffner and S.M. LaValle, dRRT-connect: An efficient approach to single-query path planning, in <em>Proc.
+           2000 IEEE Intl. Conf. on Robotics and Automation</em>, pp. 995–1001, Apr. 2000. DOI:
+           [10.1109/ROBOT.2000.844730](http://dx.doi.org/10.1109/ROBOT.2000.844730)<br>
+           [[PDF]](http://ieeexplore.ieee.org/ielx5/6794/18246/00844730.pdf?tp=&arnumber=844730&isnumber=18246)
+           [[more]](http://msl.cs.uiuc.edu/~lavalle/dRRTpubs.html)
+        */
 
-        /** discrete Rapidly-exploring Random Tree */
+        /** \brief Rapidly-exploring Random Trees */
         class dRRT : public base::Planner
         {
         public:
-            /** Constructor */
-            dRRT(const SpaceInformationPtr &si);
+            /** \brief Constructor */
+            dRRT(const base::SpaceInformationPtr &si, bool addIntermediateStates = false);
 
             ~dRRT() override;
 
-            /** Continue solving for some amount of time. Return true if solution was found. */
+            void getPlannerData(base::PlannerData &data) const override;
+
             base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;
 
-            /** Clear datastructures. Call this function if the
-                input data to the planner has changed and you do not
-                want to continue planning */
             void clear() override;
 
-            /** In the process of randomly selecting states in the state
-                space to attempt to go towards, the algorithm may in fact
-                choose the actual goal state, if it knows it, with some
-                probability. This probability is a real number between 0.0
-                and 1.0; its value should usually be around 0.05 and
-                should not be too large. It is probably a good idea to use
-                the default value. */
             void setGoalBias(double goalBias)
             {
                 goalBias_ = goalBias;
             }
 
-            /** Get the goal bias the planner is using */
+            /** \brief Get the goal bias the planner is using */
             double getGoalBias() const
             {
                 return goalBias_;
             }
 
-            /** Return true if the intermediate states generated along motions are to be added to the tree itself
+            /** \brief Return true if the intermediate states generated along motions are to be added to the tree itself
              */
             bool getIntermediateStates() const
             {
                 return addIntermediateStates_;
             }
 
-            /** Specify whether the intermediate states generated along motions are to be added to the tree
+            /** \brief Specify whether the intermediate states generated along motions are to be added to the tree
              * itself */
             void setIntermediateStates(bool addIntermediateStates)
             {
                 addIntermediateStates_ = addIntermediateStates;
             }
 
-            void getPlannerData(base::PlannerData &data) const override;
+            
+            void setRange(double distance)
+            {
+                maxDistance_ = distance;
+            }
 
-            /** Set a different nearest neighbors datastructure */
+            /** \brief Get the range the planner is using */
+            double getRange() const
+            {
+                return maxDistance_;
+            }
+
+            /** \brief Set a different nearest neighbors datastructure */
             template <template <typename T> class NN>
             void setNearestNeighbors()
             {
@@ -90,12 +105,8 @@ namespace ompl
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
             ompl::base::State * getCompositeStates(ompl::base::StateSpacePtr space);
 
-            // We need a way to uniformly sample from our vectors above
-            //RNG rng_;
-
-
         protected:
-            /** Representation of a motion
+            /** \brief Representation of a motion
 
                 This only contains pointers to parent motions as we
                 only need to go backwards in the tree. */
@@ -104,64 +115,50 @@ namespace ompl
             public:
                 Motion() = default;
 
-                /** Constructor that allocates memory for the state and the control */
-                Motion(const SpaceInformation *si)
-                  : state(si->allocState()), control(si->allocControl())
+                /** \brief Constructor that allocates memory for the state */
+                Motion(const base::SpaceInformationPtr &si) : state(si->allocState())
                 {
                 }
 
                 ~Motion() = default;
 
-                /** The state contained by the motion */
+                /** \brief The state contained by the motion */
                 base::State *state{nullptr};
 
-                /** The control contained by the motion */
-                Control *control{nullptr};
-
-                /** The number of steps the control is applied for */
-                unsigned int steps{0};
-
-                /** The parent motion in the exploration tree */
+                /** \brief The parent motion in the exploration tree */
                 Motion *parent{nullptr};
-                
             };
 
-            /** Free the memory allocated by this planner */
+            /** \brief Free the memory allocated by this planner */
             void freeMemory();
 
-            /** Compute distance between motions (actually distance between contained states) */
+            /** \brief Compute distance between motions (actually distance between contained states) */
             double distanceFunction(const Motion *a, const Motion *b) const
             {
                 return si_->distance(a->state, b->state);
             }
-            
 
-            /** State sampler */
+            /** \brief State sampler */
             base::StateSamplerPtr sampler_;
 
-            /** Control sampler */
-            DirectedControlSamplerPtr controlSampler_;
-
-            /** The base::SpaceInformation cast as control::SpaceInformation, for convenience */
-            const SpaceInformation *siC_;
-
-            /** A nearest-neighbors datastructure containing the tree of motions */
+            /** \brief A nearest-neighbors datastructure containing the tree of motions */
             std::shared_ptr<NearestNeighbors<Motion *>> nn_;
 
-            /** The fraction of time the goal is picked as the state to expand towards (if such a state is
+            /** \brief The fraction of time the goal is picked as the state to expand towards (if such a state is
              * available) */
-            double goalBias_{0.05};
+            double goalBias_{.05};
 
-            /** Flag indicating whether intermediate states are added to the built tree of motions */
-            bool addIntermediateStates_{false};
+            /** \brief The maximum length of a motion to be added to a tree */
+            double maxDistance_{0.};
 
-            /** The random number generator */
+            /** \brief Flag indicating whether intermediate states are added to the built tree of motions */
+            bool addIntermediateStates_;
+
+            /** \brief The random number generator */
             RNG rng_;
 
-            /** The most recent goal motion.  Used for PlannerData computation */
+            /** \brief The most recent goal motion.  Used for PlannerData computation */
             Motion *lastGoalMotion_{nullptr};
         };
     }
 }
-
-#endif

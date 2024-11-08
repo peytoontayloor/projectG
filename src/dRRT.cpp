@@ -1,55 +1,52 @@
 /* Author: Ioan Sucan */
 
+#include <limits>
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/tools/config/SelfConfig.h"
-#include "ompl/base/SpaceInformation.h"
-#include "ompl/control/SpaceInformation.h"
-#include "ompl/base/PlannerStatus.h"
-#include "ompl/base/Planner.h"
-#include "ompl/base/Goal.h"
-#include "ompl/base/State.h"
-#include <limits>
-#include <math.h>
-#include <cmath>
 
-#include "oldRRT.h"
 #include "dRRT.h"
 
-ompl::control::dRRT::dRRT(const SpaceInformationPtr &si) : ompl::base::Planner(si, "dRRT")
+ompl::geometric::dRRT::dRRT(const base::SpaceInformationPtr &si, bool addIntermediateStates)
+  : base::Planner(si, addIntermediateStates ? "dRRTintermediate" : "dRRT")
 {
     specs_.approximateSolutions = true;
-    siC_ = si.get();
+    specs_.directed = true;
 
+    Planner::declareParam<double>("range", this, &dRRT::setRange, &dRRT::getRange, "0.:1.:10000.");
     Planner::declareParam<double>("goal_bias", this, &dRRT::setGoalBias, &dRRT::getGoalBias, "0.:.05:1.");
     Planner::declareParam<bool>("intermediate_states", this, &dRRT::setIntermediateStates, &dRRT::getIntermediateStates,
                                 "0,1");
+
+    addIntermediateStates_ = addIntermediateStates;
 }
 
-ompl::control::dRRT::~dRRT()
+ompl::geometric::dRRT::~dRRT()
 {
     freeMemory();
 }
 
-void ompl::control::dRRT::setup()
+void ompl::geometric::dRRT::clear()
 {
-    ompl::base::Planner::setup();
-    if (!nn_)
-        nn_.reset(tools::SelfConfig::getDefaultNearestNeighbors<Motion *>(this));
-    nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
-}
-
-void ompl::control::dRRT::clear()
-{
-    ompl::base::Planner::clear();
+    Planner::clear();
     sampler_.reset();
-    controlSampler_.reset();
     freeMemory();
     if (nn_)
         nn_->clear();
     lastGoalMotion_ = nullptr;
 }
 
-void ompl::control::dRRT::freeMemory()
+void ompl::geometric::dRRT::setup()
+{
+    Planner::setup();
+    tools::SelfConfig sc(si_, getName());
+    sc.configurePlannerRange(maxDistance_);
+
+    if (!nn_)
+        nn_.reset(tools::SelfConfig::getDefaultNearestNeighbors<Motion *>(this));
+    nn_->setDistanceFunction([this](const Motion *a, const Motion *b) { return distanceFunction(a, b); });
+}
+
+void ompl::geometric::dRRT::freeMemory()
 {
     if (nn_)
     {
@@ -57,16 +54,14 @@ void ompl::control::dRRT::freeMemory()
         nn_->list(motions);
         for (auto &motion : motions)
         {
-            if (motion->state)
+            if (motion->state != nullptr)
                 si_->freeState(motion->state);
-            if (motion->control)
-                siC_->freeControl(motion->control);
             delete motion;
         }
     }
 }
 
-ompl::base::State * ompl::control::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
+ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
 {
     std::cout << "starting getCompositeStates" << std::endl;
     // Sample a random state from each vector uniformly 
@@ -102,61 +97,50 @@ ompl::base::State * ompl::control::dRRT::getCompositeStates(ompl::base::StateSpa
 
 }
 
-ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
+ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTerminationCondition &ptc)
 {
-    std::cout << "starting solve" << std::endl;
     checkValidity();
-    ompl::base::Goal *goal = pdef_->getGoal().get();
-    auto *goal_s = dynamic_cast<ompl::base::GoalSampleableRegion *>(goal);
+    base::Goal *goal = pdef_->getGoal().get();
+    auto *goal_s = dynamic_cast<base::GoalSampleableRegion *>(goal);
 
     if (goal_s == nullptr)
     {
         OMPL_ERROR("%s: Unknown type of goal", getName().c_str());
-        return ompl::base::PlannerStatus::UNRECOGNIZED_GOAL_TYPE;
+        return base::PlannerStatus::UNRECOGNIZED_GOAL_TYPE;
     }
 
-    while (const ompl::base::State *st = pis_.nextStart())
+    if (!goal_s->couldSample())
     {
-        auto *motion = new Motion(siC_);
+        OMPL_ERROR("%s: Insufficient states in sampleable goal region", getName().c_str());
+        return base::PlannerStatus::INVALID_GOAL;
+    }
+
+    while (const base::State *st = pis_.nextStart())
+    {
+        auto *motion = new Motion(si_);
         si_->copyState(motion->state, st);
-        siC_->nullControl(motion->control);
         nn_->add(motion);
     }
 
     if (nn_->size() == 0)
     {
         OMPL_ERROR("%s: There are no valid initial states!", getName().c_str());
-        return ompl::base::PlannerStatus::INVALID_START;
+        return base::PlannerStatus::INVALID_START;
     }
 
-    if (!goal_s->couldSample())
-    {
-        OMPL_ERROR("%s: Insufficient states in sampleable goal region", getName().c_str());
-        return ompl::base::PlannerStatus::INVALID_GOAL;
-    }
-
-    // TODO: trying to change original RRT code: sampler_ = si_->allocStateSampler(); to sampling from a custom sampler
+    // Leaving for now, allocating but not working with is (defining our own sampling method)
     if (!sampler_)
         sampler_ = si_->allocStateSampler();
-    if (!controlSampler_)
-        controlSampler_ = siC_->allocDirectedControlSampler();
 
     OMPL_INFORM("%s: Starting planning with %u states already in datastructure", getName().c_str(), nn_->size());
 
     Motion *solution = nullptr;
     Motion *approxsol = nullptr;
     double approxdif = std::numeric_limits<double>::infinity();
+    auto *rmotion = new Motion(si_);
+    base::State *rstate = rmotion->state;
+    base::State *xstate = si_->allocState();
 
-    auto *rmotion = new Motion(siC_); // qrand
-
-    std::cout << "before our update comment" << std::endl;
-    //UPDATE --> our rstate needs to be of type compound
-    ompl::base::State *rstate = rmotion->state;
-    // ompl::base::CompoundState *rstate = rmotion->state;
-    Control *rctrl = rmotion->control;
-    ompl::base::State *xstate = si_->allocState();
-
-    std::cout << "before while loop" << std::endl;
     while (!ptc)
     {
         /* sample random state (with goal biasing) */
@@ -167,12 +151,9 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
             //sampler_->sampleUniform(rstate);
             rstate = getCompositeStates(si_->getStateSpace());
 
-        std::cout << rstate << std::endl;
-
-        
-        std::cout << "before nearest neighbor" << std::endl;
         /* find closest state in the tree */
-        Motion *nmotion = nn_->nearest(rmotion); // qnear
+        Motion *nmotion = nn_->nearest(rmotion);
+        base::State *dstate = rstate;
 
         /* TODO: temporarily commenting out oracle section until we fix everything else
 
@@ -197,90 +178,56 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
 
         */
 
-        std::cout << "before control distance" << std::endl;
-        /* sample a random control that attempts to go towards the random state, and also sample a control duration */
-        unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
-
-        if (addIntermediateStates_)
+        /* find state to add */
+        double d = si_->distance(nmotion->state, rstate);
+        if (d > maxDistance_)
         {
-            std::cout << "within intermediate states" << std::endl;
-            // this code is contributed by Jennifer Barry
-            std::vector<ompl::base::State *> pstates;
-            cd = siC_->propagateWhileValid(nmotion->state, rctrl, cd, pstates, true);
+            si_->getStateSpace()->interpolate(nmotion->state, rstate, maxDistance_ / d, xstate);
+            dstate = xstate;
+        }
 
-            if (cd >= siC_->getMinControlDuration())
+        if (si_->checkMotion(nmotion->state, dstate))
+        {
+            if (addIntermediateStates_)
             {
-                Motion *lastmotion = nmotion;
-                bool solved = false;
-                size_t p = 0;
-                for (; p < pstates.size(); ++p)
+                std::vector<base::State *> states;
+                const unsigned int count = si_->getStateSpace()->validSegmentCount(nmotion->state, dstate);
+
+                if (si_->getMotionStates(nmotion->state, dstate, states, count, true, true))
+                    si_->freeState(states[0]);
+
+                for (std::size_t i = 1; i < states.size(); ++i)
                 {
-                    /* create a motion */
-                    auto *motion = new Motion();
-                    motion->state = pstates[p];
-
-                    std::cout << "after pstates" << std::endl;
-                    // we need multiple copies of rctrl
-                    motion->control = siC_->allocControl();
-                    siC_->copyControl(motion->control, rctrl);
-                    motion->steps = 1;
-                    motion->parent = lastmotion;
-                    lastmotion = motion;
+                    auto *motion = new Motion;
+                    motion->state = states[i];
+                    motion->parent = nmotion;
                     nn_->add(motion);
-                    double dist = 0.0;
-                    solved = goal->isSatisfied(motion->state, &dist);
-                    if (solved)
-                    {
-                        approxdif = dist;
-                        solution = motion;
-                        break;
-                    }
-                    if (dist < approxdif)
-                    {
-                        approxdif = dist;
-                        approxsol = motion;
-                    }
-                }
 
-                // free any states after we hit the goal
-                while (++p < pstates.size())
-                    si_->freeState(pstates[p]);
-                if (solved)
-                    break;
+                    nmotion = motion;
+                }
             }
             else
-                for (auto &pstate : pstates)
-                    si_->freeState(pstate);
-        }
-        else
-        {
-            if (cd >= siC_->getMinControlDuration())
             {
-                /* create a motion */
-                auto *motion = new Motion(siC_);
-
-
-                si_->copyState(motion->state, rmotion->state);
-                std::cout << "after copyState" << std::endl;
-                siC_->copyControl(motion->control, rctrl);
-                motion->steps = cd;
+                auto *motion = new Motion(si_);
+                si_->copyState(motion->state, dstate);
                 motion->parent = nmotion;
-
                 nn_->add(motion);
-                double dist = 0.0;
-                bool solv = goal->isSatisfied(motion->state, &dist);
-                std::cout << "goal is satisfied" << std::endl;
-                if (solv)
-                {
-                    approxdif = dist;
-                    solution = motion;
-                    break;
-                }
-                if (dist < approxdif)
-                {
-                    approxdif = dist;
-                    approxsol = motion;
-                }
+
+                nmotion = motion;
+            }
+
+            double dist = 0.0;
+            bool sat = goal->isSatisfied(nmotion->state, &dist);
+            if (sat)
+            {
+                approxdif = dist;
+                solution = nmotion;
+                break;
+            }
+            if (dist < approxdif)
+            {
+                approxdif = dist;
+                approxsol = nmotion;
             }
         }
     }
@@ -306,56 +253,39 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         }
 
         /* set the solution path */
-        std::cout << "before path control" << std::endl;
-        auto path(std::make_shared<PathControl>(si_));
+        auto path(std::make_shared<PathGeometric>(si_));
         for (int i = mpath.size() - 1; i >= 0; --i)
             path->append(mpath[i]->state);
-        std::cout << "appending states" << std::endl;
-        solved = true;
         pdef_->addSolutionPath(path, approximate, approxdif, getName());
-
+        solved = true;
     }
 
-    std::cout << "before free states" << std::endl;
-    if (rmotion->state)
-        si_->freeState(rmotion->state);
-    if (rmotion->control)
-        siC_->freeControl(rmotion->control);
-    delete rmotion;
     si_->freeState(xstate);
-    std::cout << nn_->size() << std::endl;
-    std::cout << "freeing states is satisfied" << std::endl;
+    if (rmotion->state != nullptr)
+        si_->freeState(rmotion->state);
+    delete rmotion;
 
     OMPL_INFORM("%s: Created %u states", getName().c_str(), nn_->size());
-    std::cout << "didn't create states?" << std::endl;
 
     return {solved, approximate};
 }
 
-void ompl::control::dRRT::getPlannerData(ompl::base::PlannerData &data) const
+void ompl::geometric::dRRT::getPlannerData(base::PlannerData &data) const
 {
-    ompl::base::Planner::getPlannerData(data);
+    Planner::getPlannerData(data);
 
     std::vector<Motion *> motions;
     if (nn_)
         nn_->list(motions);
 
-    double delta = siC_->getPropagationStepSize();
+    if (lastGoalMotion_ != nullptr)
+        data.addGoalVertex(base::PlannerDataVertex(lastGoalMotion_->state));
 
-    if (lastGoalMotion_)
-        data.addGoalVertex(ompl::base::PlannerDataVertex(lastGoalMotion_->state));
-
-    for (auto m : motions)
+    for (auto &motion : motions)
     {
-        if (m->parent)
-        {
-            if (data.hasControls())
-                data.addEdge(ompl::base::PlannerDataVertex(m->parent->state), ompl::base::PlannerDataVertex(m->state),
-                             ompl::control::PlannerDataEdgeControl(m->control, m->steps * delta));
-            else
-                data.addEdge(ompl::base::PlannerDataVertex(m->parent->state), ompl::base::PlannerDataVertex(m->state));
-        }
+        if (motion->parent == nullptr)
+            data.addStartVertex(base::PlannerDataVertex(motion->state));
         else
-            data.addStartVertex(ompl::base::PlannerDataVertex(m->state));
+            data.addEdge(base::PlannerDataVertex(motion->parent->state), base::PlannerDataVertex(motion->state));
     }
 }
