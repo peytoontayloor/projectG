@@ -417,17 +417,7 @@ int main(int, char **)
 
     // Make a compound state space with the spaces of our 4 robot PRMS:
     auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
-
-
-    /*auto control_space(std::make_shared<oc::RealVectorControlSpace>(stateSpace,2));
-    ob::RealVectorBounds control_bounds(2);
-    control_bounds.setLow(0, -10);
-    control_bounds.setHigh(0, 10);
-    control_bounds.setLow(1, -10);
-    control_bounds.setHigh(1, 10);
-
-    control_space->setBounds(control_bounds);*/
-
+    
     // Initialize a simple setup pointer:
     og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
 

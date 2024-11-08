@@ -18,7 +18,7 @@ ompl::geometric::dRRT::dRRT(const base::SpaceInformationPtr &si, bool addInterme
     Planner::declareParam<double>("goal_bias", this, &dRRT::setGoalBias, &dRRT::getGoalBias, "0.:.05:1.");
     Planner::declareParam<bool>("intermediate_states", this, &dRRT::setIntermediateStates, &dRRT::getIntermediateStates,
                                 "0,1");
-
+    
     addIntermediateStates_ = addIntermediateStates;
 }
 
@@ -65,7 +65,7 @@ void ompl::geometric::dRRT::freeMemory()
 
 ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
 {
-    std::cout << "starting getCompositeStates" << std::endl;
+    // std::cout << "starting getCompositeStates" << std::endl;
     // Sample a random state from each vector uniformly 
     int i1 = rng_.uniformInt(0, robot1.size() - 1);
     int i2 = rng_.uniformInt(0, robot2.size() - 1);
@@ -89,7 +89,7 @@ ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateS
     compound->getSubspace(2)->copyState(returnState, r3State);   
     compound->getSubspace(3)->copyState(returnState, r4State);  
 
-    std::cout << "done with getCompositeStates" << std::endl;
+    // std::cout << "done with getCompositeStates" << std::endl;
     // compound->as<ompl::base::State>(1)->copyState(r1State); 
     // compound->as<ompl::base::State>(1)->copyState(r2State);
     // compound->as<ompl::base::State>(2)->copyState(r3State);
@@ -149,11 +149,15 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         if (rng_.uniform01() < goalBias_ && goal_s->canSample())
             goal_s->sampleGoal(rstate);
         else
+        {
             // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
-            //sampler_->sampleUniform(rstate);
-            rstate = getCompositeStates(si_->getStateSpace());
+            // sampler_->sampleUniform(rstate);
+            ompl::base::CompoundStateSampler compoundStateSampler_ (si_->getStateSpace().get());
+            compoundStateSampler_.sampleUniform(rstate);
+            // rstate = getCompositeStates(si_->getStateSpace());
             // sampler_->addSampler()
 
+        }
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion);
         base::State *dstate = rstate;
@@ -184,7 +188,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // TODO: SEGFAULT HAPPENING HERE 
         // Sometimes (rarely) there is no segfault, but when there is I am pretty sure it happens here (line 183)
         double d = customDistanceFunction(nmotion->state, rstate);
-        std::cout << d << std::endl;
+        // std::cout << d << std::endl;
         
         if (d > maxDistance_)
         {
