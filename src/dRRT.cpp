@@ -68,6 +68,7 @@ void ompl::control::dRRT::freeMemory()
 
 ompl::base::State * ompl::control::dRRT::getCompositeStates(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4, ompl::base::StateSpacePtr space)
 {
+    std::cout << "starting getCompositeStates" << std::endl;
     // Sample a random state from each vector uniformly 
     int i1 = rng_.uniformInt(0, r1.size() - 1);
     int i2 = rng_.uniformInt(0, r2.size() - 1);
@@ -102,6 +103,7 @@ ompl::base::State * ompl::control::dRRT::getCompositeStates(std::vector<ompl::ba
 
 ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTerminationCondition &ptc)
 {
+    std::cout << "starting solve" << std::endl;
     checkValidity();
     ompl::base::Goal *goal = pdef_->getGoal().get();
     auto *goal_s = dynamic_cast<ompl::base::GoalSampleableRegion *>(goal);
@@ -146,12 +148,14 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
 
     auto *rmotion = new Motion(siC_); // qrand
 
+    std::cout << "before our update comment" << std::endl;
     //UPDATE --> our rstate needs to be of type compound
     ompl::base::State *rstate = rmotion->state;
     // ompl::base::CompoundState *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
     ompl::base::State *xstate = si_->allocState();
 
+    std::cout << "before while loop" << std::endl;
     while (!ptc)
     {
         /* sample random state (with goal biasing) */
@@ -165,24 +169,27 @@ ompl::base::PlannerStatus ompl::control::dRRT::solve(const ompl::base::PlannerTe
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion); // qnear
 
+        // TO DO: temporarily commenting out oracle section until we fix everything else
+        
+
         /* find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand*/
-        std::vector<Motion *> randnbrs;
-        std::size_t k = 5;
-        nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
-        Motion *newmotion;
-        double angle = std::numeric_limits<double>::infinity();
-        for (size_t i = 0; i < randnbrs.size(); i++){
-            Motion * tempnew_motion = randnbrs[i];
-            double d = distanceFunction(nmotion, tempnew_motion);
-            double n = distanceFunction(rmotion, tempnew_motion);
-            double m = distanceFunction(nmotion, rmotion); 
-            double numerator = d * d + m * m - n * n;
-            double denominator = 2 * d * m;
-            double temp_angle = acos(numerator / denominator);
-            if (temp_angle < angle){
-                newmotion = tempnew_motion;
-            }
-        }
+        // std::vector<Motion *> randnbrs;
+        // std::size_t k = 5;
+        // nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
+        // Motion *newmotion;
+        // double angle = std::numeric_limits<double>::infinity();
+        // for (size_t i = 0; i < randnbrs.size(); i++){
+        //     Motion * tempnew_motion = randnbrs[i];
+        //     double d = distanceFunction(nmotion, tempnew_motion);
+        //     double n = distanceFunction(rmotion, tempnew_motion);
+        //     double m = distanceFunction(nmotion, rmotion); 
+        //     double numerator = d * d + m * m - n * n;
+        //     double denominator = 2 * d * m;
+        //     double temp_angle = acos(numerator / denominator);
+        //     if (temp_angle < angle){
+        //         newmotion = tempnew_motion;
+        //     }
+        // }
 
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
