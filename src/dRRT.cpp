@@ -5,6 +5,7 @@
 #include "ompl/tools/config/SelfConfig.h"
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/State.h>
+#include <ompl/base/StateValidityChecker.h>
 
 #include "dRRT.h"
 
@@ -63,7 +64,7 @@ void ompl::geometric::dRRT::freeMemory()
     }
 }
 
-ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
+ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space, ompl::base::SpaceInformationPtr si_)
 {
     // TODO: right now this works, but finds approximate solutions and takes a very long time
     // ^^ Need to figure out what we are doing wrong here that would make this take so long
@@ -71,7 +72,8 @@ ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateS
 
     // ALSO! Need to collision check against obstacles here? Or somewhere- Not sure? 
 
-    // Sample a random state from each vector uniformly 
+    // Sample a random state from each vector uniformly
+
     int i1 = rng_.uniformInt(0, robot1.size() - 1);
     int i2 = rng_.uniformInt(0, robot2.size() - 1);
     int i3 = rng_.uniformInt(0, robot3.size() - 1);
@@ -82,6 +84,8 @@ ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateS
     ompl::base::State* r2State = robot2[i2];
     ompl::base::State* r3State = robot3[i3];
     ompl::base::State* r4State = robot4[i4];
+
+    // Need to collision check here!
                 
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
@@ -99,7 +103,6 @@ ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateS
     compound->getSubspace(2)->copyState(cmp->components[2], r3State);
     compound->getSubspace(3)->copyState(cmp->components[3], r4State);
 
-    // Return the state itself bc needs to be of type state to have funcitonality working 
     return returnState;
 
 }
@@ -159,8 +162,11 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             // sampler_->sampleUniform(rstate);
             //ompl::base::CompoundStateSampler compoundStateSampler_ (si_->getStateSpace().get());
             //compoundStateSampler_.sampleUniform(rstate);
-            rstate = getCompositeStates(si_->getStateSpace());
-            // sampler_->addSampler()
+            
+            //rstate = getCompositeStates(si_->getStateSpace(), si_);
+            ompl::base::State* tempState = getCompositeStates(si_->getStateSpace(), si_);
+            si_->copyState(rstate, tempState);
+            si_->freeState(tempState);
 
         }
         /* find closest state in the tree */

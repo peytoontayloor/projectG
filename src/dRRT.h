@@ -4,7 +4,7 @@
 #include <ompl/base/State.h>
 #include <math.h>
 #include <cmath>
-
+#include <ompl/base/SpaceInformation.h>
 
 namespace ompl
 {
@@ -143,7 +143,7 @@ namespace ompl
 
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
-            ompl::base::State * getCompositeStates(ompl::base::StateSpacePtr space);
+            ompl::base::State * getCompositeStates(ompl::base::StateSpacePtr space, ompl::base::SpaceInformationPtr si_);
 
         protected:
             /** \brief Representation of a motion
