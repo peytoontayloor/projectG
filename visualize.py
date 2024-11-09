@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import sys
 
-data = numpy.loadtxt('path.txt')
+data = numpy.loadtxt('path_dRRT_obstacles.txt')
 fig, ax = plt.subplots()
 ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
 ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
@@ -37,5 +37,5 @@ while wait:
         else:
             print("Invalid input. Enter 1")
 
-plt.savefig('visual.png')
+plt.savefig('visual_dRRT_obstacles.png')
 plt.show()
