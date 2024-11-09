@@ -81,6 +81,8 @@ namespace ompl
             std::vector<ompl::base::State *> robot3;
             std::vector<ompl::base::State *> robot4;
 
+            std::set<ompl::base::State *> explored;
+
             void setRobotNodes(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4)
             {
                 robot1 = r1;
