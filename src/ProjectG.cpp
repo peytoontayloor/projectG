@@ -338,11 +338,6 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
     }
 }
 
-ob::StateSamplerPtr customStateSampler(const ob::StateSpacePtr space)
-{
-
-}
-
 int main(int, char **)
 {
     std::vector<Rectangle> obstacles;
@@ -428,9 +423,9 @@ int main(int, char **)
     ob::SpaceInformationPtr si = compound->getSpaceInformation();
 
     // TODO: uncomment or comment it out to show the different behaviors with obstacles and without obstacles
-    // compound->setStateValidityChecker(
-    //     [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
-    // );
+    compound->setStateValidityChecker(
+         [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
+    );
 
     // Set our planner as dRRT
     auto planner = std::make_shared<og::dRRT>(si);
