@@ -65,34 +65,41 @@ void ompl::geometric::dRRT::freeMemory()
 
 ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space)
 {
+    // TODO: right now this works, but finds approximate solutions and takes a very long time
+    // ^^ Need to figure out what we are doing wrong here that would make this take so long
+    // ^^ My theory is maybe we are sampling repeat composite configs too much? 
+
+    // ALSO! Need to collision check against obstacles here? Or somewhere- Not sure? 
+
     // Sample a random state from each vector uniformly 
     int i1 = rng_.uniformInt(0, robot1.size() - 1);
     int i2 = rng_.uniformInt(0, robot2.size() - 1);
     int i3 = rng_.uniformInt(0, robot3.size() - 1);
     int i4 = rng_.uniformInt(0, robot4.size() - 1);
 
-    ompl::base::State * r1State = robot1[i1];
-    ompl::base::State * r2State = robot2[i2];
-    ompl::base::State * r3State = robot3[i3];
-    ompl::base::State * r4State = robot4[i4];
+    // Create a state pointer to hold each of the randomly sampled states
+    ompl::base::State* r1State = robot1[i1];
+    ompl::base::State* r2State = robot2[i2];
+    ompl::base::State* r3State = robot3[i3];
+    ompl::base::State* r4State = robot4[i4];
                 
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
-
+    
     // Initializing our state to return
-    ompl::base::State * returnState = compound->allocState();
-                
-    // // Copying over each of our states as elements of this compound state:
-    compound->getSubspace(0)->copyState(returnState, r1State);   
-    compound->getSubspace(1)->copyState(returnState, r2State);   
-    compound->getSubspace(2)->copyState(returnState, r3State);   
-    compound->getSubspace(3)->copyState(returnState, r4State);  
+    ompl::base::State* returnState = compound->allocState();
 
-    // compound->as<ompl::base::State>(1)->copyState(r1State); 
-    // compound->as<ompl::base::State>(1)->copyState(r2State);
-    // compound->as<ompl::base::State>(2)->copyState(r3State);
-    // compound->as<ompl::base::State>(3)->copyState(r4State);
+    // In order to use components to set the subspaces, need to cast our return state as a compound state
+    ompl::base::CompoundState* cmp = returnState->as<ompl::base::CompoundState>();
 
+    // Looking at OMPL documentation, I think we can use "components" to acess each substate --> yes
+    // Can now set each subspace/state in our compound state to r1->r4
+    compound->getSubspace(0)->copyState(cmp->components[0], r1State);
+    compound->getSubspace(1)->copyState(cmp->components[1], r2State);
+    compound->getSubspace(2)->copyState(cmp->components[2], r3State);
+    compound->getSubspace(3)->copyState(cmp->components[3], r4State);
+
+    // Return the state itself bc needs to be of type state to have funcitonality working 
     return returnState;
 
 }
@@ -150,9 +157,9 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         {
             // TODO: want rstate to be a compound state formed from picking a random configuration from our 4 robot's PRMS
             // sampler_->sampleUniform(rstate);
-            ompl::base::CompoundStateSampler compoundStateSampler_ (si_->getStateSpace().get());
-            compoundStateSampler_.sampleUniform(rstate);
-            // rstate = getCompositeStates(si_->getStateSpace());
+            //ompl::base::CompoundStateSampler compoundStateSampler_ (si_->getStateSpace().get());
+            //compoundStateSampler_.sampleUniform(rstate);
+            rstate = getCompositeStates(si_->getStateSpace());
             // sampler_->addSampler()
 
         }
@@ -186,6 +193,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // TODO: SEGFAULT HAPPENING HERE 
         // Sometimes (rarely) there is no segfault, but when there is I am pretty sure it happens here (line 183)
         double d = customDistanceFunction(nmotion->state, rstate);
+        //double d = si_->distance(nmotion->state, rstate);
 
         if (d > maxDistance_)
         {
