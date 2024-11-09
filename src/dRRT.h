@@ -92,6 +92,10 @@ namespace ompl
 
             }
 
+            std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
+
+            ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates)
+
             double euclideanDistance(double xCoordA, double yCoordA, double xCoordB, double yCoordB)
             {
                 return sqrt(std::pow(xCoordA - xCoordB, 2) + std::pow(yCoordA - yCoordB, 2));
