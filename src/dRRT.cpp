@@ -66,9 +66,6 @@ void ompl::geometric::dRRT::freeMemory()
 
 ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space)
 {
-    // TODO: right now this works, but finds approximate solutions and takes a very long time
-    // ^^ Need to figure out what we are doing wrong here that would make this take so long
-    // ^^ My theory is maybe we are sampling repeat composite configs too much? 
 
     // ALSO! Need to collision check against obstacles here? Or somewhere- Not sure? 
 
@@ -189,6 +186,7 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
 
 // }
 
+
 ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
@@ -258,35 +256,61 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // nmotion->state is our qnear! 
         // First, find k-nearest neighbors of qnear (right now, k is 2)
 
-        std::vector<ompl::base::State *> nbrR1 = neighbors(rstate, 1);
-        std::vector<ompl::base::State *> nbrR2 = neighbors(rstate, 2);
-        std::vector<ompl::base::State *> nbrR3 = neighbors(rstate, 3);
-        std::vector<ompl::base::State *> nbrR4 = neighbors(rstate, 4);
+        std::vector<ompl::base::State *> nbrR1 = neighbors(nmotion->state, 1);
+        std::vector<ompl::base::State *> nbrR2 = neighbors(nmotion->state, 2);
+        std::vector<ompl::base::State *> nbrR3 = neighbors(nmotion->state, 3);
+        std::vector<ompl::base::State *> nbrR4 = neighbors(nmotion->state, 4);
 
-        // std::vector<ompl::base::State *> nearestNeighbors = nearestN(nmotion->state);
-
-        /* TODO: temporarily commenting out oracle section until we fix everything else
-
-        // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
-        std::vector<Motion *> randnbrs;
-        std::size_t k = 5;
-        nn_->nearestK(nmotion, k, randnbrs); // TODO: needs to be UNEXPLORED neighbors
-        Motion *newmotion;
-        double angle = std::numeric_limits<double>::infinity();
-        for (size_t i = 0; i < randnbrs.size(); i++){
-            Motion * tempnew_motion = randnbrs[i];
-            double d = distanceFunction(nmotion, tempnew_motion);
-            double n = distanceFunction(rmotion, tempnew_motion);
-            double m = distanceFunction(nmotion, rmotion); 
-            double numerator = d * d + m * m - n * n;
-            double denominator = 2 * d * m;
-            double temp_angle = acos(numerator / denominator);
-            if (temp_angle < angle){
-                newmotion = tempnew_motion;
-            }
+        if ((nbrR1.empty()) or (nbrR2.empty()) or (nbrR3.empty()) or (nbrR4.empty()))
+        {
+            std::cout << "NO NEIGHBOR, PICKING NEW QRAND" << std::endl;
+            continue;
         }
 
-        */
+        // Now, need a qnew from each robots graph according to each robots qnear:
+        // Extract individual state for each robot from qnear AND rstate
+        // Need to pass each robot's individual state information pointers in, not the main compound one
+        ompl::base::State* qNew1 = oracle(nmotion->state, rstate, nbrR1, 1, spaceInfo1);
+        ompl::base::State* qNew2 = oracle(nmotion->state, rstate, nbrR2, 2, spaceInfo2);
+        ompl::base::State* qNew3 = oracle(nmotion->state, rstate, nbrR3, 3, spaceInfo3);
+        ompl::base::State* qNew4 = oracle(nmotion->state, rstate, nbrR4, 4, spaceInfo4);
+
+        // For debugging seg faults
+        std::cout << "Line 277" << std::endl;
+        // Given all of the individual qnews, make our composite QNEW:
+        ompl::base::CompoundStateSpace* compound = (si_->getStateSpace())->as<ompl::base::CompoundStateSpace>();
+        std::cout << "Line 282" << std::endl;
+        ompl::base::State* qNew = compound->allocState();
+        std::cout << "Line 284" << std::endl;
+        ompl::base::CompoundState* cmp = qNew->as<ompl::base::CompoundState>();
+        std::cout << "Line 286" << std::endl;
+
+        // UPDATE: getting segault bc qnew1, qnew2, and qnew3 are null pointers (means oracle function is behind this)
+        if(qNew1 == nullptr)
+        {
+            std::cout << "new 1" << std::endl;
+        }
+        if(qNew2 == nullptr)
+        {
+            std::cout << "new 2" << std::endl;
+        }
+        if(qNew3 == nullptr)
+        {
+            std::cout << "new 3" << std::endl;
+        }
+        if(qNew4 == nullptr)
+        {
+            std::cout << "new 4" << std::endl;
+        }
+        compound->getSubspace(0)->copyState(cmp->components[0], qNew1);
+        compound->getSubspace(1)->copyState(cmp->components[1], qNew2);
+        compound->getSubspace(2)->copyState(cmp->components[2], qNew3);
+        compound->getSubspace(3)->copyState(cmp->components[3], qNew4);
+        std::cout << "Line 291" << std::endl;
+
+        // TODO: now need to collision check/local connector! 
+        // If everything works out, add qnew to the tree and 'explored' vector- haven't incorporated yet
+
 
         double d = customDistanceFunction(nmotion->state, rstate);
         //double d = si_->distance(nmotion->state, rstate);

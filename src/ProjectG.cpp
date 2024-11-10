@@ -15,6 +15,8 @@
 # include <ompl/control/SimpleSetup.h>
 #include <ompl/control/ODESolver.h>
 
+#include <ompl/geometric/SimpleSetup.h>
+
 # include "CollisionChecking.h"
 # include "dRRT.h"
 
@@ -433,6 +435,7 @@ int main(int, char **)
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
     planner->setRobotPRMs(r1RM, r2RM, r3RM, r4RM);
     planner->setRobotNodes();
+    planner->setIndivSpaceInfo(r1, r2, r3, r4);
     // planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
 
     // ADDED planner and set robot nodes --> works now

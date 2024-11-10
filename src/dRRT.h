@@ -11,6 +11,8 @@
  #include <boost/pending/disjoint_sets.hpp>
 #include <ompl/geometric/planners/prm/PRM.h>
 
+#include <ompl/geometric/SimpleSetup.h>
+
 namespace ompl
 {
     namespace geometric
@@ -105,6 +107,11 @@ namespace ompl
             std::map<std::pair<double, double>, long signed int> robot3mapping;
             std::map<std::pair<double, double>, long signed int> robot4mapping;
 
+            ompl::base::SpaceInformationPtr spaceInfo1;
+            ompl::base::SpaceInformationPtr spaceInfo2;
+            ompl::base::SpaceInformationPtr spaceInfo3;
+            ompl::base::SpaceInformationPtr spaceInfo4;
+
             std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> createPRMNodes(PRM::Graph roadmap){
 
                 // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
@@ -184,6 +191,14 @@ namespace ompl
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR4 = createPRMNodes(r4RM);
                 robot4 = resultR4.first;
                 robot4mapping = resultR4.second;
+            }
+
+            void setIndivSpaceInfo(ompl::geometric::SimpleSetupPtr si1, ompl::geometric::SimpleSetupPtr si2, ompl::geometric::SimpleSetupPtr si3, ompl::geometric::SimpleSetupPtr si4)
+            {
+                spaceInfo1 = si1->getSpaceInformation();
+                spaceInfo2 = si2->getSpaceInformation();
+                spaceInfo3 = si3->getSpaceInformation();
+                spaceInfo4 = si4->getSpaceInformation();
             }
 
 
@@ -273,16 +288,79 @@ namespace ompl
 
             }
 
+            double euclideanDistance(double xCoordA, double yCoordA, double xCoordB, double yCoordB)
+            {
+                return sqrt(std::pow(xCoordA - xCoordB, 2) + std::pow(yCoordA - yCoordB, 2));
+            }
+
+
+            ompl::base::State* oracle(ompl::base::State* qnear, ompl::base::State* qrand, std::vector<ompl::base::State *> neighbors, int rNum, ompl::base::SpaceInformationPtr info)
+            {
+                // This will return a state, qnew, such that angle is minimized (following algorithm provided in paper)
+                
+                // Do not need to make a newmotion here, will be done at the end of all robot's qnews being generated
+
+                // TODO: ensure that the qnew picked is not in "explored states" --> implement this later 
+
+                // Extract the individual states from the composite ones
+                ompl::base::State* nearState = info->allocState();
+                ompl::base::State* randState = info->allocState();
+                if (rNum == 1)
+                {
+                    nearState = qnear->as<ompl::base::CompoundState>()->components[0];
+                    randState = qrand->as<ompl::base::CompoundState>()->components[0];
+                }
+                if (rNum == 2)
+                {
+                    nearState = qnear->as<ompl::base::CompoundState>()->components[1];
+                    randState = qrand->as<ompl::base::CompoundState>()->components[1];
+                }
+                if (rNum == 3)
+                {
+                    nearState = qnear->as<ompl::base::CompoundState>()->components[2];
+                    randState = qrand->as<ompl::base::CompoundState>()->components[2];
+                }
+                if (rNum == 4)
+                {
+                    nearState = qnear->as<ompl::base::CompoundState>()->components[3];
+                    randState = qrand->as<ompl::base::CompoundState>()->components[3];
+                }
+
+                double nearX = nearState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double nearY = nearState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double randX = randState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double randY = randState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
+                ompl::base::State *qnew = info->allocState();
+                double angle = std::numeric_limits<double>::infinity();
+                for (size_t i = 0; i < neighbors.size(); i++){
+                    ompl::base::State* temp = neighbors[i];
+                    double x = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double y = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                    double d = euclideanDistance(nearX, nearY, x, y);
+                    double n = euclideanDistance(randX, randY, x, y);
+                    double m = euclideanDistance(nearX, nearY, randX, randY); 
+                    double numerator = d * d + m * m - n * n;
+                    double denominator = 2 * d * m;
+                    double temp_angle = acos(numerator / denominator);
+                    if (temp_angle < angle){
+                        info->copyState(qnew, temp);
+                        angle = temp_angle;
+                    }
+                }
+
+                return qnew;
+
+            }
+
             std::set<ompl::base::State *> explored;
 
             // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
 
             // ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates);
 
-            double euclideanDistance(double xCoordA, double yCoordA, double xCoordB, double yCoordB)
-            {
-                return sqrt(std::pow(xCoordA - xCoordB, 2) + std::pow(yCoordA - yCoordB, 2));
-            }
 
             double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
 
