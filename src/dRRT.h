@@ -4,7 +4,12 @@
 #include <ompl/base/State.h>
 #include <math.h>
 #include <cmath>
+#include <vector>
 #include <ompl/base/SpaceInformation.h>
+ #include <boost/graph/graph_traits.hpp>
+ #include <boost/graph/adjacency_list.hpp>
+ #include <boost/pending/disjoint_sets.hpp>
+#include <ompl/geometric/planners/prm/PRM.h>
 
 namespace ompl
 {
@@ -76,25 +81,186 @@ namespace ompl
 
             void setup() override;
 
+            PRM::Graph r1RM;
+            PRM::Graph r2RM;
+            PRM::Graph r3RM;
+            PRM::Graph r4RM;
+
+            void setRobotPRMs(PRM::Graph r1RM_param, PRM::Graph r2RM_param, PRM::Graph r3RM_param, PRM::Graph r4RM_param)
+            {
+                r1RM = r1RM_param;
+                r2RM = r2RM_param;
+                r3RM = r3RM_param;
+                r4RM = r4RM_param;
+
+            }
+
             std::vector<ompl::base::State *> robot1;
             std::vector<ompl::base::State *> robot2;
             std::vector<ompl::base::State *> robot3;
             std::vector<ompl::base::State *> robot4;
 
-            std::set<ompl::base::State *> explored;
+            std::map<ompl::base::State *, long signed int> robot1mapping;
+            std::map<ompl::base::State *, long signed int> robot2mapping;
+            std::map<ompl::base::State *, long signed int> robot3mapping;
+            std::map<ompl::base::State *, long signed int> robot4mapping;
 
-            void setRobotNodes(std::vector<ompl::base::State *> r1, std::vector<ompl::base::State *> r2, std::vector<ompl::base::State *> r3, std::vector<ompl::base::State *> r4)
+            std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> createPRMNodes(PRM::Graph roadmap){
+
+                // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
+                auto stateMap = boost::get(PRM::vertex_state_t(), roadmap);
+
+                // Iterate through graph nodes and extract states into vector
+                PRM::Graph::vertex_iterator v, vend;
+                std::vector<ompl::base::State *> states;
+                std::map<ompl::base::State *, long signed int> map;
+                for (boost::tie(v, vend) = boost::vertices(roadmap); v != vend; ++v) {
+
+                    ompl::base::State *state = boost::get(stateMap, *v);
+                    map[state] = *v;
+                    states.push_back(state);
+                    
+                    std::cout << "v*: " << *v << std::endl;
+                    double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    std::cout << "x: " << x << std::endl;
+                    std::cout << "y: " << y << "\n" << std::endl;
+                }
+                std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> result(states, map);
+                std::cout << "---------" << std::endl;
+
+                std::map<ompl::base::State *, long signed int> ::iterator it;
+
+                for (it = map.begin(); it != map.end(); it++)
+                {
+                    std::cout << it->first    // string (key)
+                            << ':'
+                            << it->second   // string's value 
+                            << std::endl;
+                }
+                return result;
+            }
+
+            void setRobotNodes()
             {
-                robot1 = r1;
-                robot2 = r2;
-                robot3 = r3;
-                robot4 = r4;
+                std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> resultR1 = createPRMNodes(r1RM);
+                
+                robot1 = resultR1.first;
+                robot1mapping = resultR1.second;
+
+                std::map<ompl::base::State *, long signed int> ::iterator it;
+                for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
+                {
+                    std::cout << it->first    // string (key)
+                            << ':'
+                            << it->second   // string's value 
+                            << std::endl;
+                }
+                
+                std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> resultR2 = createPRMNodes(r2RM);
+                robot2 = resultR2.first;
+                robot2mapping = resultR2.second;
+                
+                std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> resultR3 = createPRMNodes(r3RM);
+                robot3 = resultR3.first;
+                robot3mapping = resultR3.second;
+
+                std::pair<std::vector<ompl::base::State *>, std::map<ompl::base::State *, long signed int>> resultR4 = createPRMNodes(r4RM);
+                robot4 = resultR4.first;
+                robot4mapping = resultR4.second;
+            }
+
+
+            std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<ompl::base::State *, long signed int> mapping, ompl::base::State * qnear){
+
+                std::map<ompl::base::State *, long signed int> ::iterator it;
+
+                for (it = mapping.begin(); it != mapping.end(); it++)
+                {
+                    std::cout << it->first    // string (key)
+                            << ':'
+                            << it->second   // string's value 
+                            << std::endl;
+                }
+
+                auto pos = mapping.find(qnear->as<ompl::base::CompoundState>()->components[0]);
+                if (pos == mapping.end()){
+                    std::cout << "did not find" << std::endl;
+                    std::vector<ompl::base::State *> result = {};
+                    return result;
+                }
+                else{
+
+                    long signed int v = pos->second;
+                    double x_near = qnear->as<ompl::base::CompoundState>()->components[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double y_near = qnear->as<ompl::base::CompoundState>()->components[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    std::cout << "x: " << x_near << std::endl;
+                    std::cout << "y: " << y_near << "\n" << std::endl;
+
+                    auto stateMap = boost::get(PRM::vertex_state_t(), roadmap);
+
+                    PRM::Graph::adjacency_iterator ai, a_end; 
+                    std::vector<ompl::base::State *> states;
+
+                    ompl::base::State *input_state = boost::get(stateMap, v);
+                    
+                    std::cout << "---------" << std::endl;
+
+                    std::cout << "neighbors of " << std::endl;
+
+                    std::cout << v << std::endl;
+                    double x_input = input_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double y_input = input_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    std::cout << "---------" << std::endl;
+
+                    std::cout << "x: " << x_input << std::endl;
+                    std::cout << "y: " << y_input << "\n" << std::endl;
+
+                    for (boost::tie(ai, a_end) = boost::adjacent_vertices(v, roadmap); ai != a_end; ai++) { 
+                        ompl::base::State *state = boost::get(stateMap, *ai);
+                        states.push_back(state);
+
+                        double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                        double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                        std::cout << "x: " << x << std::endl;
+                        std::cout << "y: " << y << "\n" << std::endl;
+                    }
+                    std::cout << "---------" << "\n" << std::endl;
+                    return states;
+                }
 
             }
 
-            std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
+            std::vector<ompl::base::State *> neighbors(ompl::base::State * qnear, int robotId){
 
-            ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates)
+                if (robotId == 1){
+                    return getAdjacentVertices(r1RM, robot1mapping, qnear);
+                }
+
+                if (robotId == 2){
+                    return getAdjacentVertices(r2RM, robot2mapping, qnear);
+                }
+
+                if (robotId == 3){
+                    return getAdjacentVertices(r3RM, robot3mapping, qnear);
+                }
+
+                if (robotId == 4){
+                    return getAdjacentVertices(r4RM, robot4mapping, qnear);
+                }
+
+
+            }
+
+            std::set<ompl::base::State *> explored;
+
+            // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
+
+            // ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates);
 
             double euclideanDistance(double xCoordA, double yCoordA, double xCoordB, double yCoordB)
             {

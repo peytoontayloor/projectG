@@ -431,8 +431,9 @@ int main(int, char **)
     auto planner = std::make_shared<og::dRRT>(si);
     
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
-    planner->setRobotPRMS(r1RM, r2RM)
-    planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
+    planner->setRobotPRMs(r1RM, r2RM, r3RM, r4RM);
+    planner->setRobotNodes();
+    // planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
 
     // ADDED planner and set robot nodes --> works now
     compound->setPlanner(planner);
