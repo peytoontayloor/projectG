@@ -278,7 +278,7 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
             ob::ScopedState<> tempState = compositeState[i][j];
 
             // copy over the state as a substate of a composite state                                
-            compStateSpace->getSubspace(j)->copyState(compState->as<ob::State>(j), tempState.get());    
+            compStateSpace->getSubspace(j)->copyState(compState->components[j], tempState.get());  
         }
     }
 
@@ -431,6 +431,7 @@ int main(int, char **)
     auto planner = std::make_shared<og::dRRT>(si);
     
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
+    planner->setRobotPRMS(r1RM, r2RM)
     planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
 
     // ADDED planner and set robot nodes --> works now
