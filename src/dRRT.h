@@ -110,25 +110,38 @@ namespace ompl
                 // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
                 auto stateMap = boost::get(PRM::vertex_state_t(), roadmap);
 
-                // Iterate through graph nodes and extract states into vector
+                // Iterate through graph nodes
                 PRM::Graph::vertex_iterator v, vend;
+
+                // Extract states into vector
                 std::vector<ompl::base::State *> states;
+
+                // Set up a mapping of state's x, y coordinates to a vertex descriptor, later used to find adjacent vertices
                 std::map<std::pair<double, double>, long signed int> map;
+
+                // Iterate through all vertices 
                 for (boost::tie(v, vend) = boost::vertices(roadmap); v != vend; ++v) {
 
                     ompl::base::State *state = boost::get(stateMap, *v);
+
+                    // TODO: potentially reconsider pushing a pointer to a state, it works but is not good practice
                     states.push_back(state);
                     
                     std::cout << "v*: " << *v << std::endl;
+
                     double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                     std::pair<double, double> coord (x, y);
+
                     map[coord] = *v;
 
                     std::cout << "x: " << x << std::endl;
                     std::cout << "y: " << y << "\n" << std::endl;
                 }
+
+                // Make tuple of vector of states and mapping to return
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> result(states, map);
+
                 std::cout << "---------" << std::endl;
 
                 std::map<std::pair<double, double>, long signed int> ::iterator it;
@@ -147,12 +160,10 @@ namespace ompl
             void setRobotNodes()
             {
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> resultR1 = createPRMNodes(r1RM);
-                
                 robot1 = resultR1.first;
                 robot1mapping = resultR1.second;
 
                 std::map<std::pair<double, double>, long signed int> ::iterator it;
-
                 for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
                 {
                     std::cout << "(" << it->first.first  << ", "  // string (key)
@@ -176,34 +187,35 @@ namespace ompl
             }
 
 
-            std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnear){
+            std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnearSubState){
 
-                std::map<std::pair<double, double>, long signed int>::iterator it;
+                // std::map<std::pair<double, double>, long signed int>::iterator it;
 
-                for (it = mapping.begin(); it != mapping.end(); it++)
-                {
-                    std::cout << "(" << it->first.first  << ", "  // string (key)
-                             << it->first.second  << " ) "  // string (key)
-                            << ':'
-                            << it->second   // string's value 
-                            << std::endl;
-                }
+                // for (it = mapping.begin(); it != mapping.end(); it++)
+                // {
+                //     std::cout << "(" << it->first.first  << ", "  // string (key)
+                //              << it->first.second  << " ) "  // string (key)
+                //             << ':'
+                //             << it->second   // string's value 
+                //             << std::endl;
+                // }
 
-                double x_near = qnear->as<ompl::base::CompoundState>()->components[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double y_near = qnear->as<ompl::base::CompoundState>()->components[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                double x_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double y_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                 std::pair<double, double> coord_near (x_near, y_near);
+
+                std::cout << "x: " << x_near << std::endl;
+                std::cout << "y: " << y_near << std::endl;
+
                 auto pos = mapping.find(coord_near);
                 if (pos == mapping.end()){
-                    std::cout << "did not find" << std::endl;
+                    std::cout << "did not find" << "\n" << std::endl;
                     std::vector<ompl::base::State *> result = {};
                     return result;
                 }
                 else{
 
                     long signed int v = pos->second;
-
-                    std::cout << "x: " << x_near << std::endl;
-                    std::cout << "y: " << y_near << "\n" << std::endl;
 
                     auto stateMap = boost::get(PRM::vertex_state_t(), roadmap);
 
@@ -232,10 +244,10 @@ namespace ompl
                         double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                         double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-                        std::cout << "x: " << x << std::endl;
-                        std::cout << "y: " << y << "\n" << std::endl;
+                        // std::cout << "x: " << x << std::endl;
+                        // std::cout << "y: " << y << "\n" << std::endl;
                     }
-                    std::cout << "---------" << "\n" << std::endl;
+                    // std::cout << "---------" << "\n" << std::endl;
                     return states;
                 }
 
@@ -244,21 +256,20 @@ namespace ompl
             std::vector<ompl::base::State *> neighbors(ompl::base::State * qnear, int robotId){
 
                 if (robotId == 1){
-                    return getAdjacentVertices(r1RM, robot1mapping, qnear);
+                    return getAdjacentVertices(r1RM, robot1mapping, qnear->as<ompl::base::CompoundState>()->components[0]);
                 }
 
                 if (robotId == 2){
-                    return getAdjacentVertices(r2RM, robot2mapping, qnear);
+                    return getAdjacentVertices(r2RM, robot2mapping, qnear->as<ompl::base::CompoundState>()->components[1]);
                 }
 
                 if (robotId == 3){
-                    return getAdjacentVertices(r3RM, robot3mapping, qnear);
+                    return getAdjacentVertices(r3RM, robot3mapping, qnear->as<ompl::base::CompoundState>()->components[2]);
                 }
 
                 if (robotId == 4){
-                    return getAdjacentVertices(r4RM, robot4mapping, qnear);
+                    return getAdjacentVertices(r4RM, robot4mapping, qnear->as<ompl::base::CompoundState>()->components[3]);
                 }
-
 
             }
 
@@ -321,7 +332,7 @@ namespace ompl
 
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
-            ompl::base::State * getCompositeStates(ompl::base::StateSpacePtr space, ompl::base::SpaceInformationPtr si_);
+            ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
 
         protected:
             /** \brief Representation of a motion

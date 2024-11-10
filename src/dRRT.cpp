@@ -64,7 +64,7 @@ void ompl::geometric::dRRT::freeMemory()
     }
 }
 
-ompl::base::State * ompl::geometric::dRRT::getCompositeStates(ompl::base::StateSpacePtr space, ompl::base::SpaceInformationPtr si_)
+ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space)
 {
     // TODO: right now this works, but finds approximate solutions and takes a very long time
     // ^^ Need to figure out what we are doing wrong here that would make this take so long
@@ -246,7 +246,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             //compoundStateSampler_.sampleUniform(rstate);
             
             //rstate = getCompositeStates(si_->getStateSpace(), si_);
-            ompl::base::State* tempState = getCompositeStates(si_->getStateSpace(), si_);
+            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace());
             si_->copyState(rstate, tempState);
             si_->freeState(tempState);
 
@@ -258,7 +258,10 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // nmotion->state is our qnear! 
         // First, find k-nearest neighbors of qnear (right now, k is 2)
 
-        std::vector<ompl::base::State *> nearestNeighbors = neighbors(rstate, 1);
+        std::vector<ompl::base::State *> nbrR1 = neighbors(rstate, 1);
+        std::vector<ompl::base::State *> nbrR2 = neighbors(rstate, 2);
+        std::vector<ompl::base::State *> nbrR3 = neighbors(rstate, 3);
+        std::vector<ompl::base::State *> nbrR4 = neighbors(rstate, 4);
 
         // std::vector<ompl::base::State *> nearestNeighbors = nearestN(nmotion->state);
 
