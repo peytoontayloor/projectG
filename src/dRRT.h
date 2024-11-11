@@ -5,6 +5,7 @@
 #include <math.h>
 #include <cmath>
 #include <vector>
+#include <utility>
 #include <ompl/base/SpaceInformation.h>
  #include <boost/graph/graph_traits.hpp>
  #include <boost/graph/adjacency_list.hpp>
@@ -12,6 +13,14 @@
 #include <ompl/geometric/planners/prm/PRM.h>
 
 #include <ompl/geometric/SimpleSetup.h>
+
+// Definition of a line segment between (x1, y1) and (x2, y2)
+struct Line
+{
+    double x1, y1;
+    double x2, y2;
+};
+
 
 namespace ompl
 {
@@ -134,33 +143,34 @@ namespace ompl
                     // TODO: potentially reconsider pushing a pointer to a state, it works but is not good practice
                     states.push_back(state);
                     
-                    std::cout << "v*: " << *v << std::endl;
+                    // std::cout << "v*: " << *v << std::endl;
 
+                    // Create tuple of coordinates to use as key in mapping (instead of pointer to state)
                     double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                     std::pair<double, double> coord (x, y);
 
                     map[coord] = *v;
 
-                    std::cout << "x: " << x << std::endl;
-                    std::cout << "y: " << y << "\n" << std::endl;
+                    // std::cout << "x: " << x << std::endl;
+                    // std::cout << "y: " << y << "\n" << std::endl;
                 }
 
                 // Make tuple of vector of states and mapping to return
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> result(states, map);
 
-                std::cout << "---------" << std::endl;
+                // std::cout << "---------" << std::endl;
 
-                std::map<std::pair<double, double>, long signed int> ::iterator it;
+                // std::map<std::pair<double, double>, long signed int> ::iterator it;
 
-                for (it = map.begin(); it != map.end(); it++)
-                {
-                    std::cout << "(" << it->first.first  << ", "  // string (key)
-                            << it->first.second  << " ) "  // string (key)
-                            << ':'
-                            << it->second   // string's value 
-                            << std::endl;
-                }
+                // // for (it = map.begin(); it != map.end(); it++)
+                // {
+                //     std::cout << "(" << it->first.first  << ", "  // string (key)
+                //             << it->first.second  << " ) "  // string (key)
+                //             << ':'
+                //             << it->second   // string's value 
+                //             << std::endl;
+                // }
                 return result;
             }
 
@@ -170,15 +180,15 @@ namespace ompl
                 robot1 = resultR1.first;
                 robot1mapping = resultR1.second;
 
-                std::map<std::pair<double, double>, long signed int> ::iterator it;
-                for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
-                {
-                    std::cout << "(" << it->first.first  << ", "  // string (key)
-                             << it->first.second  << " ) "  // string (key)
-                            << ':'
-                            << it->second   // string's value 
-                            << std::endl;
-                }
+                // std::map<std::pair<double, double>, long signed int> ::iterator it;
+                // for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
+                // {
+                //     std::cout << "(" << it->first.first  << ", "  // string (key)
+                //              << it->first.second  << " ) "  // string (key)
+                //             << ':'
+                //             << it->second   // string's value 
+                //             << std::endl;
+                // }
                 
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR2 = createPRMNodes(r2RM);
                 robot2 = resultR2.first;
@@ -203,28 +213,17 @@ namespace ompl
 
 
             std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnearSubState){
-
-                // std::map<std::pair<double, double>, long signed int>::iterator it;
-
-                // for (it = mapping.begin(); it != mapping.end(); it++)
-                // {
-                //     std::cout << "(" << it->first.first  << ", "  // string (key)
-                //              << it->first.second  << " ) "  // string (key)
-                //             << ':'
-                //             << it->second   // string's value 
-                //             << std::endl;
-                // }
-
+                
                 double x_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                 double y_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                 std::pair<double, double> coord_near (x_near, y_near);
 
-                std::cout << "x: " << x_near << std::endl;
-                std::cout << "y: " << y_near << std::endl;
+                // std::cout << "x: " << x_near << std::endl;
+                // std::cout << "y: " << y_near << std::endl;
 
                 auto pos = mapping.find(coord_near);
                 if (pos == mapping.end()){
-                    std::cout << "did not find" << "\n" << std::endl;
+                    // std::cout << "did not find" << "\n" << std::endl;
                     std::vector<ompl::base::State *> result = {};
                     return result;
                 }
@@ -237,20 +236,10 @@ namespace ompl
                     PRM::Graph::adjacency_iterator ai, a_end; 
                     std::vector<ompl::base::State *> states;
 
-                    ompl::base::State *input_state = boost::get(stateMap, v);
-                    
-                    std::cout << "---------" << std::endl;
-
-                    std::cout << "neighbors of " << std::endl;
-
-                    std::cout << v << std::endl;
-                    double x_input = input_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                    double y_input = input_state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                    std::cout << "---------" << std::endl;
-
-                    std::cout << "x: " << x_input << std::endl;
-                    std::cout << "y: " << y_input << "\n" << std::endl;
+                    // std::cout << "---------" << std::endl;
+                    // std::cout << "neighbors of " << std::endl;
+                    // std::cout << v << std::endl;
+                    // std::cout << "---------" << std::endl;
 
                     for (boost::tie(ai, a_end) = boost::adjacent_vertices(v, roadmap); ai != a_end; ai++) { 
                         ompl::base::State *state = boost::get(stateMap, *ai);
@@ -353,6 +342,105 @@ namespace ompl
 
                 return qnew;
 
+            }
+
+            bool linePointIntersection(double x, double y, Line line)
+            {
+                double m = (line.x2 - line.x1) / (line.y2 - line.y1);
+                if (m * (x - line.x1) == (y - line.y1)){
+                    return true;
+                }
+                return false;
+            }
+
+            std::vector<int> robotRobotCollisionChecking(std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements)
+            {
+                std::pair<ompl::base::State *, ompl::base::State *> r1movement = robotMovements[0];
+                std::pair<ompl::base::State *, ompl::base::State *> r2movement = robotMovements[1];
+                std::pair<ompl::base::State *, ompl::base::State *> r3movement = robotMovements[2];
+                std::pair<ompl::base::State *, ompl::base::State *> r4movement = robotMovements[3];
+                
+                double r1XQnear = r1movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r1YQnear = r1movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r1XQnew = r1movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r1YQnew = r1movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r2XQnear = r2movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r2YQnear = r2movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r2XQnew = r2movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r2YQnew = r2movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r3XQnear = r3movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r3YQnear = r3movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r3XQnew = r3movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r3YQnew = r3movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r4XQnear = r4movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r4YQnear = r4movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                double r4XQnew = r4movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double r4YQnew = r4movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                Line r1move;
+                r1move.x1 = r1XQnear;
+                r1move.y1 = r1YQnear;
+                r1move.x2 = r1XQnew;
+                r1move.y2 = r2YQnew;
+                
+                Line r2move;
+                r2move.x1 = r2XQnear;
+                r2move.y1 = r2YQnear;
+                r2move.x2 = r2XQnew;
+                r2move.y2 = r2YQnew;
+                
+                Line r3move;
+                r3move.x1 = r3XQnear;
+                r3move.y1 = r3YQnear;
+                r3move.x2 = r3XQnew;
+                r3move.y2 = r3YQnew;
+                
+                Line r4move;
+                r4move.x1 = r4XQnear;
+                r4move.y1 = r4YQnear;
+                r4move.x2 = r4XQnew;
+                r4move.y2 = r4YQnew;
+                
+                std::vector<int> res;
+                bool robot1Collision = linePointIntersection(r1XQnew, r1YQnew, r2move) || linePointIntersection(r1XQnew, r1YQnew, r3move) || linePointIntersection(r1XQnew, r1YQnew, r4move);
+                if (robot1Collision){
+                    res.push_back(1);
+                }
+                else{
+                    res.push_back(0);
+                }
+
+                bool robot2Collision = linePointIntersection(r2XQnew, r2YQnew, r1move) || linePointIntersection(r2XQnew, r2YQnew, r3move) || linePointIntersection(r2XQnew, r2YQnew, r4move);
+                if (robot2Collision){
+                    res.push_back(1);
+                }
+                else{
+                    res.push_back(0);
+                }
+
+                bool robot3Collision = linePointIntersection(r3XQnew, r3YQnew, r1move) || linePointIntersection(r3XQnew, r3YQnew, r2move) || linePointIntersection(r3XQnew, r3YQnew, r4move);
+                if (robot3Collision){
+                    res.push_back(1);
+                }
+                else{
+                    res.push_back(0);
+                }
+
+                bool robot4Collision = linePointIntersection(r4XQnew, r4YQnew, r1move) || linePointIntersection(r4XQnew, r4YQnew, r2move) || linePointIntersection(r4XQnew, r4YQnew, r3move);
+                if (robot4Collision){
+                    res.push_back(1);
+                }
+                else{
+                    res.push_back(0);
+                }
+                return res;
             }
 
             std::set<ompl::base::State *> explored;

@@ -6,6 +6,8 @@
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/State.h>
 #include <ompl/base/StateValidityChecker.h>
+#include <vector>
+#include <utility>
 
 #include "dRRT.h"
 
@@ -276,14 +278,14 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         ompl::base::State* qNew4 = oracle(nmotion->state, rstate, nbrR4, 4, spaceInfo4);
 
         // For debugging seg faults
-        std::cout << "Line 277" << std::endl;
+        // std::cout << "Line 277" << std::endl;
         // Given all of the individual qnews, make our composite QNEW:
         ompl::base::CompoundStateSpace* compound = (si_->getStateSpace())->as<ompl::base::CompoundStateSpace>();
-        std::cout << "Line 282" << std::endl;
+        // std::cout << "Line 282" << std::endl;
         ompl::base::State* qNew = compound->allocState();
-        std::cout << "Line 284" << std::endl;
-        ompl::base::CompoundState* cmp = qNew->as<ompl::base::CompoundState>();
-        std::cout << "Line 286" << std::endl;
+        // std::cout << "Line 284" << std::endl;
+        ompl::base::CompoundState* qNewCompound = qNew->as<ompl::base::CompoundState>();
+        // std::cout << "Line 286" << std::endl;
 
         // UPDATE: getting segault bc qnew1, qnew2, and qnew3 are null pointers (means oracle function is behind this)
         if(qNew1 == nullptr)
@@ -302,15 +304,26 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         {
             std::cout << "new 4" << std::endl;
         }
-        compound->getSubspace(0)->copyState(cmp->components[0], qNew1);
-        compound->getSubspace(1)->copyState(cmp->components[1], qNew2);
-        compound->getSubspace(2)->copyState(cmp->components[2], qNew3);
-        compound->getSubspace(3)->copyState(cmp->components[3], qNew4);
-        std::cout << "Line 291" << std::endl;
+        compound->getSubspace(0)->copyState(qNewCompound->components[0], qNew1);
+        compound->getSubspace(1)->copyState(qNewCompound->components[1], qNew2);
+        compound->getSubspace(2)->copyState(qNewCompound->components[2], qNew3);
+        compound->getSubspace(3)->copyState(qNewCompound->components[3], qNew4);
+        // std::cout << "Line 291" << std::endl;
 
         // TODO: now need to collision check/local connector! 
         // If everything works out, add qnew to the tree and 'explored' vector- haven't incorporated yet
 
+        ompl::base::CompoundState * qNearCompound = nmotion->state->as<ompl::base::CompoundState>();
+        std::pair<ompl::base::State *, ompl::base::State *> r1movement (qNearCompound->components[0], qNew1);
+        std::pair<ompl::base::State *, ompl::base::State *> r2movement (qNearCompound->components[1], qNew2);
+        std::pair<ompl::base::State *, ompl::base::State *> r3movement (qNearCompound->components[2], qNew3);
+        std::pair<ompl::base::State *, ompl::base::State *> r4movement (qNearCompound->components[3], qNew4);
+
+        std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements = {r1movement, r2movement, r3movement, r4movement};
+        std::vector<int> robotCollisions = robotRobotCollisionChecking(robotMovements);
+        for (size_t i = 0; i < robotCollisions.size(); ++i){
+            std::cout << robotCollisions[i] << std::endl;
+        }
 
         double d = customDistanceFunction(nmotion->state, rstate);
         //double d = si_->distance(nmotion->state, rstate);
