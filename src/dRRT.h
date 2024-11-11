@@ -346,8 +346,7 @@ namespace ompl
 
             bool linePointIntersection(double x, double y, Line line)
             {
-                double m = (line.x2 - line.x1) / (line.y2 - line.y1);
-                if (m * (x - line.x1) == (y - line.y1)){
+                if (euclideanDistance(line.x1, line.y1, line.x2, line.y2) == euclideanDistance(x, y, line.x1, line.y1) + euclideanDistance(x, y, line.x2, line.y2)){
                     return true;
                 }
                 return false;
