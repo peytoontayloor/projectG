@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <utility>
+#include <deque>
 #include <ompl/base/SpaceInformation.h>
  #include <boost/graph/graph_traits.hpp>
  #include <boost/graph/adjacency_list.hpp>
@@ -352,7 +353,7 @@ namespace ompl
                 return false;
             }
 
-            std::vector<int> robotRobotCollisionChecking(std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements)
+            std::vector<int> robotPathCollisionChecking(std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements)
             {
                 std::pair<ompl::base::State *, ompl::base::State *> r1movement = robotMovements[0];
                 std::pair<ompl::base::State *, ompl::base::State *> r2movement = robotMovements[1];
@@ -448,6 +449,8 @@ namespace ompl
 
             // ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates);
 
+            
+
 
             double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
 
@@ -495,9 +498,91 @@ namespace ompl
                 return r1Distance + r2Distance + r3Distance + r4Distance;
             }
 
+            
+
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
             ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
+
+
+            class DirectedAcylicGraph
+            {
+                public:
+                    DirectedAcylicGraph() = default;
+
+                    ~DirectedAcylicGraph() = default;
+
+                    // Stores mapping of nodes to a vector of nodes
+                    std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
+
+                    // Stores mapping of nodes to their indegrees
+                    std::map<std::vector<std::pair<double, double>>, int> indegree;
+
+                    // Turns a state into a vector of four coordinates and initializes the indegree to 0
+                    void addVertex(ompl::base::State * a){
+
+                        const ompl::base::CompoundState * a_compoundstate = a->as<ompl::base::CompoundState>();
+
+                        // Create vector of four (x, y) pairs 
+                        std::vector<std::pair<double, double>> coords;
+                        for (int i = 0; i < 4; ++i){
+                            double rix_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
+                            double riy_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
+                            
+                            std::pair<double, double> coord (rix_coord, riy_coord);
+                            coords.push_back(coord);
+                        }
+
+                        // Create node v and add indegree
+                        indegree[coords] = 0;
+
+                    }
+
+                    bool vertexInGraph(std::vector<std::pair<double, double>> v){
+                        std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>>::iterator it = adjList.find(v);
+                        if (it == adjList.end()){
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    void setIndegrees(std::vector<std::pair<double, double>> firstNode){
+                        std::deque<std::vector<std::pair<double, double>>> deque;
+                        std::set<std::vector<std::pair<double, double>>> visited;
+
+                        visited.insert(firstNode);
+                        deque.push_back(firstNode);
+
+                        while (!deque.empty()){
+                            std::vector<std::pair<double, double>> node = deque.front();
+                            deque.pop_front();
+                            
+                            auto adjIt = adjList.find(node);
+                            if (adjIt != adjList.end()){
+                                std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
+                                for (size_t i = 0; i < nbrs.size(); ++i){
+                                    if (visited.find(nbrs[i]) == visited.end()){
+                                        visited.insert(nbrs[i]);
+                                        auto indegreeIt = indegree.find(node);
+                                        if (indegreeIt!= indegree.end()){
+                                            indegree[nbrs[i]] = indegree[nbrs[i]] + 1;
+                                        }
+                                        deque.push_back(nbrs[i]);
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                    // graphSearch(){
+                    //     // TODO
+                    //     std::vector<Node> queue;
+
+                    // }
+
+
+            };
 
         protected:
             /** \brief Representation of a motion

@@ -319,11 +319,15 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         std::pair<ompl::base::State *, ompl::base::State *> r3movement (qNearCompound->components[2], qNew3);
         std::pair<ompl::base::State *, ompl::base::State *> r4movement (qNearCompound->components[3], qNew4);
 
+        // point-path collision checker -- may not be needed
         std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements = {r1movement, r2movement, r3movement, r4movement};
-        std::vector<int> robotCollisions = robotRobotCollisionChecking(robotMovements);
-        for (size_t i = 0; i < robotCollisions.size(); ++i){
-            std::cout << robotCollisions[i] << std::endl;
-        }
+        std::vector<int> robotCollisions = robotPathCollisionChecking(robotMovements);
+        // for (size_t i = 0; i < robotCollisions.size(); ++i){
+        //     std::cout << robotCollisions[i] << std::endl;
+        // }
+
+        // local connector
+
 
         double d = customDistanceFunction(nmotion->state, rstate);
         //double d = si_->distance(nmotion->state, rstate);
