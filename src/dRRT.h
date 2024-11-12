@@ -546,10 +546,11 @@ namespace ompl
                         return true;
                     }
 
-                    void setIndegrees(std::vector<std::pair<double, double>> firstNode){
+                    void setIndegrees(){
                         std::deque<std::vector<std::pair<double, double>>> deque;
                         std::set<std::vector<std::pair<double, double>>> visited;
 
+                        std::vector<std::pair<double, double>> firstNode = indegree.begin()->first;
                         visited.insert(firstNode);
                         deque.push_back(firstNode);
 
