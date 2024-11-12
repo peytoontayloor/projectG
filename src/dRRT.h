@@ -500,90 +500,136 @@ namespace ompl
 
             
 
-
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
             ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
 
+            // Stores mapping of nodes to a vector of nodes
+            std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
 
-            class DirectedAcylicGraph
-            {
-                public:
-                    DirectedAcylicGraph() = default;
+            // Stores mapping of nodes to their indegrees
+            std::map<std::vector<std::pair<double, double>>, int> indegree;
 
-                    ~DirectedAcylicGraph() = default;
+            // Turns a state into a vector of four coordinates and initializes the indegree to 0
+            void addVertex(ompl::base::State * a){
 
-                    // Stores mapping of nodes to a vector of nodes
-                    std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
+                const ompl::base::CompoundState * a_compoundstate = a->as<ompl::base::CompoundState>();
 
-                    // Stores mapping of nodes to their indegrees
-                    std::map<std::vector<std::pair<double, double>>, int> indegree;
+                // Create vector of four (x, y) pairs 
+                std::vector<std::pair<double, double>> coords;
+                for (int i = 0; i < 4; ++i){
+                    double rix_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
+                    double riy_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
+                    
+                    std::pair<double, double> coord (rix_coord, riy_coord);
+                    coords.push_back(coord);
+                }
 
-                    // Turns a state into a vector of four coordinates and initializes the indegree to 0
-                    void addVertex(ompl::base::State * a){
+                // Create node v and add indegree
+                indegree[coords] = 0;
 
-                        const ompl::base::CompoundState * a_compoundstate = a->as<ompl::base::CompoundState>();
+            }
 
-                        // Create vector of four (x, y) pairs 
-                        std::vector<std::pair<double, double>> coords;
-                        for (int i = 0; i < 4; ++i){
-                            double rix_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
-                            double riy_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
-                            
-                            std::pair<double, double> coord (rix_coord, riy_coord);
-                            coords.push_back(coord);
+            bool vertexInGraph(std::vector<std::pair<double, double>> v){
+                std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>>::iterator it = adjList.find(v);
+                if (it == adjList.end()){
+                    return false;
+                }
+                return true;
+            }
+
+            void setIndegrees(){
+                std::deque<std::vector<std::pair<double, double>>> deque;
+                std::set<std::vector<std::pair<double, double>>> visited;
+
+                std::vector<std::pair<double, double>> firstNode = indegree.begin()->first;
+                visited.insert(firstNode);
+                deque.push_back(firstNode);
+
+                // Running BFS to set indegrees of nodes correctly
+                while (!deque.empty()){
+                    std::vector<std::pair<double, double>> node = deque.front();
+                    deque.pop_front();
+                    
+                    auto adjIt = adjList.find(node);
+                    if (adjIt != adjList.end()){
+                        std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
+                        for (size_t i = 0; i < nbrs.size(); ++i){
+                            if (visited.find(nbrs[i]) == visited.end()){
+                                visited.insert(nbrs[i]);
+                                auto indegreeIt = indegree.find(node);
+                                if (indegreeIt!= indegree.end()){
+                                    indegree[nbrs[i]] = indegree[nbrs[i]] + 1;
+                                }
+                                deque.push_back(nbrs[i]);
+                            }
                         }
-
-                        // Create node v and add indegree
-                        indegree[coords] = 0;
-
                     }
 
-                    bool vertexInGraph(std::vector<std::pair<double, double>> v){
-                        std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>>::iterator it = adjList.find(v);
-                        if (it == adjList.end()){
-                            return false;
-                        }
-                        return true;
+                }
+            }
+
+            bool graphSearch(){
+
+                std::vector<std::vector<std::pair<double, double>>> verts;
+                std::set<std::vector<std::pair<double, double>>> visited;
+                
+                std::deque<std::vector<std::pair<double, double>>> deque;
+
+                std::map<std::vector<std::pair<double, double>>, int>::iterator it;
+                for (it = indegree.begin(); it != indegree.end(); it++)
+                {
+                    if (it->second == 0){
+                        deque.push_back(it->first);
+                        visited.insert(it->first);
+                    }
+                    verts.push_back(it->first);
+                }
+
+                while (!deque.empty()){
+                    std::vector<std::pair<double, double>> node = deque.front();
+
+                    // Double checking here that node is in verts, it should be
+                    std::vector<std::vector<std::pair<double, double>>>::iterator vertsIt = std::find(verts.begin(), verts.end(), node);
+                    if (vertsIt != verts.end()){
+                        verts.erase(vertsIt);
                     }
 
-                    void setIndegrees(){
-                        std::deque<std::vector<std::pair<double, double>>> deque;
-                        std::set<std::vector<std::pair<double, double>>> visited;
+                    deque.pop_front();
 
-                        std::vector<std::pair<double, double>> firstNode = indegree.begin()->first;
-                        visited.insert(firstNode);
-                        deque.push_back(firstNode);
+                    // Running bfs 
+                    auto adjIt = adjList.find(node);
+                    if (adjIt != adjList.end()){
+                        std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
 
-                        while (!deque.empty()){
-                            std::vector<std::pair<double, double>> node = deque.front();
-                            deque.pop_front();
-                            
-                            auto adjIt = adjList.find(node);
-                            if (adjIt != adjList.end()){
-                                std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
-                                for (size_t i = 0; i < nbrs.size(); ++i){
-                                    if (visited.find(nbrs[i]) == visited.end()){
-                                        visited.insert(nbrs[i]);
-                                        auto indegreeIt = indegree.find(node);
-                                        if (indegreeIt!= indegree.end()){
-                                            indegree[nbrs[i]] = indegree[nbrs[i]] + 1;
-                                        }
+                        // iterate through neighbors
+                        for (size_t i = 0; i < nbrs.size(); ++i){
+
+                            // Ensure nbr[i] is not visited yet
+                            if (visited.find(nbrs[i]) == visited.end()){
+                                visited.insert(nbrs[i]);
+
+                                // Decrement indegrees
+                                auto indegreeIt = indegree.find(node);
+                                if (indegreeIt!= indegree.end()){
+                                    indegree[nbrs[i]] = indegree[nbrs[i]] - 1;
+
+                                    // If indegrees becomes 0, add to queue
+                                    if (indegree[nbrs[i]] == 0){
                                         deque.push_back(nbrs[i]);
                                     }
                                 }
                             }
-
                         }
                     }
+                }
+                if (verts.empty()){
+                    return true;
+                }
+                else{
+                    return false;
+                }
 
-                    // graphSearch(){
-                    //     // TODO
-                    //     std::vector<Node> queue;
-
-                    // }
-
-
-            };
+            }
 
         protected:
             /** \brief Representation of a motion
