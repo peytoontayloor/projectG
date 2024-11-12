@@ -327,6 +327,17 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // }
 
         // local connector
+        addVertex(qNew);
+        addVertex(nmotion->state);
+        if (vertexInGraph(nmotion->state)){
+            std::vector<std::vector<std::pair<double, double>>> nodes = adjList.find(createCoordinates(nmotion->state))->second;
+            nodes.push_back(createCoordinates(qNew));
+        }
+        // TODO: not sure how to do the default dictionary thing where we just add a key into a dictionary
+        setIndegrees();
+        graphSearch();
+
+        
 
 
         double d = customDistanceFunction(nmotion->state, rstate);

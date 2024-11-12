@@ -509,27 +509,35 @@ namespace ompl
             // Stores mapping of nodes to their indegrees
             std::map<std::vector<std::pair<double, double>>, int> indegree;
 
-            // Turns a state into a vector of four coordinates and initializes the indegree to 0
-            void addVertex(ompl::base::State * a){
-
-                const ompl::base::CompoundState * a_compoundstate = a->as<ompl::base::CompoundState>();
+            
+            std::vector<std::pair<double, double>> createCoordinates(ompl::base::State *state)
+            { 
+                const ompl::base::CompoundState * compoundstate = state->as<ompl::base::CompoundState>();
 
                 // Create vector of four (x, y) pairs 
                 std::vector<std::pair<double, double>> coords;
                 for (int i = 0; i < 4; ++i){
-                    double rix_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
-                    double riy_coord = a_compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
+                    double rix_coord = compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
+                    double riy_coord = compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
                     
                     std::pair<double, double> coord (rix_coord, riy_coord);
                     coords.push_back(coord);
                 }
+                return coords;
+            }
+
+            // Turns a state into a vector of four coordinates and initializes the indegree to 0
+            void addVertex(ompl::base::State * a){
+
+                std::vector<std::pair<double, double>> coords = createCoordinates(a);
 
                 // Create node v and add indegree
                 indegree[coords] = 0;
 
             }
 
-            bool vertexInGraph(std::vector<std::pair<double, double>> v){
+            bool vertexInGraph(ompl::base::State *a){
+                std::vector<std::pair<double, double>> v = createCoordinates(a);
                 std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>>::iterator it = adjList.find(v);
                 if (it == adjList.end()){
                     return false;
