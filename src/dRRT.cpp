@@ -246,6 +246,29 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             si_->copyState(motion->state, qNew);
             motion->parent = nmotion;
             nn_->add(motion);
+
+            // Insert each robot's state into respective robot's set of explored nodes
+
+            double x_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+            double y_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
+            std::pair<double, double> explored_1 (x_new_1, y_new_1);
+            exploredR1.insert(explored_1);
+
+            double x_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
+            double y_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
+            std::pair<double, double> explored_2 (x_new_2, y_new_2);
+            exploredR1.insert(explored_2);
+
+            double x_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
+            double y_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];  
+            std::pair<double, double> explored_3 (x_new_3, y_new_3);
+            exploredR1.insert(explored_3);
+                
+            double x_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
+            double y_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
+            std::pair<double, double> explored_4 (x_new_4, y_new_4);
+            exploredR1.insert(explored_4);
+
             nmotion = motion;
 
             double dist = 0.0;

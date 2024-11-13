@@ -181,15 +181,15 @@ namespace ompl
                 robot1 = resultR1.first;
                 robot1mapping = resultR1.second;
 
-                std::map<std::pair<double, double>, long signed int> ::iterator it;
-                for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
-                {
-                    std::cout << "(" << it->first.first  << ", "  // string (key)
-                             << it->first.second  << " ) "  // string (key)
-                            << ':'
-                            << it->second   // string's value 
-                            << std::endl;
-                }
+                // std::map<std::pair<double, double>, long signed int> ::iterator it;
+                // for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
+                // {
+                //     std::cout << "(" << it->first.first  << ", "  // string (key)
+                //              << it->first.second  << " ) "  // string (key)
+                //             << ':'
+                //             << it->second   // string's value 
+                //             << std::endl;
+                // }
                 
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR2 = createPRMNodes(r2RM);
                 robot2 = resultR2.first;
@@ -240,8 +240,8 @@ namespace ompl
                 
                 std::pair<double, double> coord_near (x_near, y_near);
 
-                std::cout << "x: " << x_near << std::endl;
-                std::cout << "y: " << y_near << "\n" << std::endl;
+                // std::cout << "x: " << x_near << std::endl;
+                // std::cout << "y: " << y_near << "\n" << std::endl;
 
                 auto pos = mapping.find(coord_near);
                 if (pos == mapping.end()){
@@ -357,7 +357,7 @@ namespace ompl
                 double denominator = 2 * d_ * m_;
                 double temp_angle = acos(numerator / denominator);
 
-                std::cout << "neighbors size: " << neighbors.size() << std::endl;
+                // std::cout << "neighbors size: " << neighbors.size() << std::endl;
                 double angle = temp_angle;
                 for (size_t i = 1; i < neighbors.size(); i++){
                     ompl::base::State* temp = info->allocState();
@@ -376,8 +376,30 @@ namespace ompl
                     std::pair<double, double> tempCoords (x, y);
 
                     if (temp_angle > 0 && temp_angle < angle){
-                        info->copyState(qnew, temp);
-                        angle = temp_angle;
+
+                        bool exploredCheck = true;
+                        if (rNum == 1)
+                        {
+                            exploredCheck = exploredR1.find(tempCoords) == exploredR1.end();
+                        }
+                        if (rNum == 2)
+                        {
+                            exploredCheck = exploredR2.find(tempCoords) == exploredR2.end();
+                        }
+                        if (rNum == 3)
+                        {
+                            exploredCheck = exploredR3.find(tempCoords) == exploredR3.end();
+                        }
+                        if (rNum == 4)
+                        {
+                            exploredCheck = exploredR4.find(tempCoords) == exploredR4.end();
+                        }
+
+                        if (exploredCheck){
+
+                            info->copyState(qnew, temp);
+                            angle = temp_angle;
+                        }
                     }
                     info->freeState(temp);
                 }
@@ -488,7 +510,10 @@ namespace ompl
                 return res;
             }
 
-            std::set<std::pair<double, double>> explored;
+            std::set<std::pair<double, double>> exploredR1;
+            std::set<std::pair<double, double>> exploredR2;
+            std::set<std::pair<double, double>> exploredR3;
+            std::set<std::pair<double, double>> exploredR4;
 
             // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
 
