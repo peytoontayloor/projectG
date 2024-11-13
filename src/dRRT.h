@@ -164,7 +164,7 @@ namespace ompl
 
                 // std::map<std::pair<double, double>, long signed int> ::iterator it;
 
-                // // for (it = map.begin(); it != map.end(); it++)
+                // for (it = map.begin(); it != map.end(); it++)
                 // {
                 //     std::cout << "(" << it->first.first  << ", "  // string (key)
                 //             << it->first.second  << " ) "  // string (key)
@@ -181,15 +181,15 @@ namespace ompl
                 robot1 = resultR1.first;
                 robot1mapping = resultR1.second;
 
-                // std::map<std::pair<double, double>, long signed int> ::iterator it;
-                // for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
-                // {
-                //     std::cout << "(" << it->first.first  << ", "  // string (key)
-                //              << it->first.second  << " ) "  // string (key)
-                //             << ':'
-                //             << it->second   // string's value 
-                //             << std::endl;
-                // }
+                std::map<std::pair<double, double>, long signed int> ::iterator it;
+                for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
+                {
+                    std::cout << "(" << it->first.first  << ", "  // string (key)
+                             << it->first.second  << " ) "  // string (key)
+                            << ':'
+                            << it->second   // string's value 
+                            << std::endl;
+                }
                 
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR2 = createPRMNodes(r2RM);
                 robot2 = resultR2.first;
@@ -213,10 +213,31 @@ namespace ompl
             }
 
 
-            std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnearSubState){
+            std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnear, int robotId){
+
+                double x_near = 0.0;
+                double y_near = 0.0;
+                ompl::base::CompoundState * qnearCompoundState = qnear->as<ompl::base::CompoundState>();
+                if (robotId == 1)
+                {
+                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
+                }
+                if (robotId == 2)
+                {
+                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
+                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
+                }
+                if (robotId == 3)
+                {
+                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
+                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];   
+                }
+                if (robotId == 4){
+                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
+                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
+                }
                 
-                double x_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double y_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                 std::pair<double, double> coord_near (x_near, y_near);
 
                 std::cout << "x: " << x_near << std::endl;
@@ -261,19 +282,19 @@ namespace ompl
             std::vector<ompl::base::State *> neighbors(ompl::base::State * qnear, int robotId){
 
                 if (robotId == 1){
-                    return getAdjacentVertices(r1RM, robot1mapping, qnear->as<ompl::base::CompoundState>()->components[0]);
+                    return getAdjacentVertices(r1RM, robot1mapping, qnear, robotId);
                 }
 
                 if (robotId == 2){
-                    return getAdjacentVertices(r2RM, robot2mapping, qnear->as<ompl::base::CompoundState>()->components[1]);
+                    return getAdjacentVertices(r2RM, robot2mapping, qnear, robotId);
                 }
 
                 if (robotId == 3){
-                    return getAdjacentVertices(r3RM, robot3mapping, qnear->as<ompl::base::CompoundState>()->components[2]);
+                    return getAdjacentVertices(r3RM, robot3mapping, qnear, robotId);
                 }
 
                 if (robotId == 4){
-                    return getAdjacentVertices(r4RM, robot4mapping, qnear->as<ompl::base::CompoundState>()->components[3]);
+                    return getAdjacentVertices(r4RM, robot4mapping, qnear, robotId);
                 }
 
             }
@@ -338,12 +359,17 @@ namespace ompl
                     double temp_angle = acos(numerator / denominator);
 
                     // only keep q new if it is unexplored
-                    if (temp_angle < angle){
+                    std::pair<double, double> tempCoords (x, y);
+
+                    if (temp_angle > 0 && temp_angle < angle && explored.find(tempCoords) == explored.end()){
                         info->copyState(qnew, temp);
                         angle = temp_angle;
                     }
                 }
 
+                if (angle == std::numeric_limits<double>::infinity()){
+                    return nullptr;
+                }
 
                 return qnew;
 
@@ -447,7 +473,7 @@ namespace ompl
                 return res;
             }
 
-            std::set<ompl::base::State *> explored;
+            std::set<std::pair<double, double>> explored;
 
             // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
 

@@ -419,7 +419,7 @@ int main(int, char **)
     goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
     goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
 
-    compound->setStartAndGoalStates(start, goal);
+    compound->setStartAndGoalStates(start, goal, 0.5);
 
     // Retrieving space information pointer from simple setup
     ob::SpaceInformationPtr si = compound->getSpaceInformation();

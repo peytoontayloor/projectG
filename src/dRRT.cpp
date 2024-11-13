@@ -108,86 +108,6 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
 
 }
 
-// ompl::base::State* ompl::geometric::dRRT::smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates)
-// {
-//     // To keep track of minimum distance
-//     ompl::base::State* minState1;
-//     ompl::base::State* minState2;
-
-//     // TODO: change this to either the first two distances in the array, or some other metric that is big enough that logic will still work
-//     double minDist1 = 10000000;
-//     double minDist2 = 10000000;
-
-//     // Extract source position:
-//     // TODO: pretty sure extracting position wrong lol
-//     double x = source->position[0];
-//     double y = source->position[1];
-
-//     for(size_t i = 0; i < robotStates.size())
-//     {
-//         double tempX = robotStates[i]->position[0];
-//         double tempY = robotStates[i]->position[1];
-
-//         double dist = euclideanDistance(x, double y, double tempX, double tempY)
-
-//         if (dist < minDist1)
-//         {
-//             minDist1 = dist;
-
-//             // TODO: doing the bad memory management thing again -> but copystate() won't work unless we get r1's specific state information pointer
-//             // ^^might be able to use si_ from solve() but nervous I am doing state spaces wrong?
-//             minState1 = robotState[i];
-
-//         }
-//         else if (dist < minDist2)
-//         {
-//             minDist2 = dist;
-//             minState2 = robotState[i];
-//         }
-//     }
-
-//     // TODO: not sure how to do tuples in C++, maybe just return a vector (change return type here and in .h file)
-//     return minState1, minState2;
-// }
-
-// std::vector<ompl::base::State *> ompl::geometric::dRRT::nearestN(ompl::base::State* qnear)
-// {
-//     // Find smallest distance states from qnear to r1, r2, r3, r4, then make as a composite state and save.
-//     // TODO: we need to make sure that the smallest distance state isn't just itself!
-
-//     ompl::base::State* r1Nearest1 = smallestDist(qnear, robot1)[0];
-//     ompl::base::State* r2Nearest1 = smallestDist(qnear, robot2)[0];
-//     ompl::base::State* r3Nearest1 = smallestDist(qnear, robot3)[0];
-//     ompl::base::State* r4Nearest1 = smallestDist(qnear, robot4)[0];
-
-//     ompl::base::State* r1Nearest2 = smallestDist(qnear, robot1)[1];
-//     ompl::base::State* r2Nearest2 = smallestDist(qnear, robot2)[1];
-//     ompl::base::State* r3Nearest2 = smallestDist(qnear, robot3)[1];
-//     ompl::base::State* r4Nearest2 = smallestDist(qnear, robot4)[1];
-
-//     // Create a compound state (same as in custom sampler for qrand)
-//     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
-//     ompl::base::State* returnState1 = compound->allocState();
-//     ompl::base::State* returnState2 = compound->allocState();
-//     ompl::base::CompoundState* cmp1 = returnState1->as<ompl::base::CompoundState>();
-//     ompl::base::CompoundState* cmp2 = returnState2->as<ompl::base::CompoundState>();
-
-//     compound->getSubspace(0)->copyState(cmp1->components[0], r1Nearest1);
-//     compound->getSubspace(1)->copyState(cmp1->components[1], r2Nearest1);
-//     compound->getSubspace(2)->copyState(cmp1->components[2], r3Nearest1);
-//     compound->getSubspace(3)->copyState(cmp1->components[3], r4Nearest1);
-
-//     compound->getSubspace(0)->copyState(cmp2->components[0], r1Nearest2);
-//     compound->getSubspace(1)->copyState(cmp2->components[1], r2Nearest2);
-//     compound->getSubspace(2)->copyState(cmp2->components[2], r3Nearest2);
-//     compound->getSubspace(3)->copyState(cmp2->components[3], r4Nearest2);
-
-//     // TODO: right now just returning k=1 nearest neighbor, we want at least k=2 and then store them in a vector of states and return!
-//     // ^^^ Have k=2 in function but haven't added to a vector yet
-//     return returnState1;
-
-// }
-
 
 ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTerminationCondition &ptc)
 {
@@ -291,18 +211,22 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         if(qNew1 == nullptr)
         {
             std::cout << "new 1" << std::endl;
+            continue;
         }
         if(qNew2 == nullptr)
         {
             std::cout << "new 2" << std::endl;
+            continue;
         }
         if(qNew3 == nullptr)
         {
             std::cout << "new 3" << std::endl;
+            continue;
         }
         if(qNew4 == nullptr)
         {
             std::cout << "new 4" << std::endl;
+            continue;
         }
         compound->getSubspace(0)->copyState(qNewCompound->components[0], qNew1);
         compound->getSubspace(1)->copyState(qNewCompound->components[1], qNew2);
