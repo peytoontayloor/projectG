@@ -346,9 +346,23 @@ namespace ompl
                 // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
                 
                 ompl::base::State *qnew = info->allocState();
-                double angle = std::numeric_limits<double>::infinity();
-                for (size_t i = 0; i < neighbors.size(); i++){
-                    ompl::base::State* temp = neighbors[i];
+                info->copyState(qnew, neighbors[0]);
+
+                double x_ = neighbors[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double y_ = neighbors[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                double d_ = euclideanDistance(nearX, nearY, x_, y_);
+                double n_ = euclideanDistance(randX, randY, x_, y_);
+                double m_ = euclideanDistance(nearX, nearY, randX, randY); 
+                double numerator = d_ * d_ + m_ * m_ - n_ * n_;
+                double denominator = 2 * d_ * m_;
+                double temp_angle = acos(numerator / denominator);
+
+                std::cout << "neighbors size: " << neighbors.size() << std::endl;
+                double angle = temp_angle;
+                for (size_t i = 1; i < neighbors.size(); i++){
+                    ompl::base::State* temp = info->allocState();
+                    info->copyState(neighbors[i], temp);
+                    
                     double x = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double y = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                     double d = euclideanDistance(nearX, nearY, x, y);
@@ -361,10 +375,11 @@ namespace ompl
                     // only keep q new if it is unexplored
                     std::pair<double, double> tempCoords (x, y);
 
-                    if (temp_angle > 0 && temp_angle < angle && explored.find(tempCoords) == explored.end()){
+                    if (temp_angle > 0 && temp_angle < angle){
                         info->copyState(qnew, temp);
                         angle = temp_angle;
                     }
+                    info->freeState(temp);
                 }
 
                 if (angle == std::numeric_limits<double>::infinity()){
