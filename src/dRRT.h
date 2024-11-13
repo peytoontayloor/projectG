@@ -361,7 +361,7 @@ namespace ompl
                 double angle = temp_angle;
                 for (size_t i = 1; i < neighbors.size(); i++){
                     ompl::base::State* temp = info->allocState();
-                    info->copyState(neighbors[i], temp);
+                    info->copyState(temp, neighbors[i]);
                     
                     double x = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double y = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
