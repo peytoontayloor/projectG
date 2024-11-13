@@ -313,20 +313,20 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // TODO: now need to collision check/local connector! 
         // If everything works out, add qnew to the tree and 'explored' vector- haven't incorporated yet
 
-        ompl::base::CompoundState * qNearCompound = nmotion->state->as<ompl::base::CompoundState>();
+        /*ompl::base::CompoundState * qNearCompound = nmotion->state->as<ompl::base::CompoundState>();
         std::pair<ompl::base::State *, ompl::base::State *> r1movement (qNearCompound->components[0], qNew1);
         std::pair<ompl::base::State *, ompl::base::State *> r2movement (qNearCompound->components[1], qNew2);
         std::pair<ompl::base::State *, ompl::base::State *> r3movement (qNearCompound->components[2], qNew3);
-        std::pair<ompl::base::State *, ompl::base::State *> r4movement (qNearCompound->components[3], qNew4);
+        std::pair<ompl::base::State *, ompl::base::State *> r4movement (qNearCompound->components[3], qNew4);*/
 
         // point-path collision checker -- may not be needed
-        std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements = {r1movement, r2movement, r3movement, r4movement};
-        std::vector<int> robotCollisions = robotPathCollisionChecking(robotMovements);
+        /*std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements = {r1movement, r2movement, r3movement, r4movement};
+        std::vector<int> robotCollisions = robotPathCollisionChecking(robotMovements);*/
         // for (size_t i = 0; i < robotCollisions.size(); ++i){
         //     std::cout << robotCollisions[i] << std::endl;
         // }
 
-        // local connector
+        /*// local connector
         addVertex(qNew);
         addVertex(nmotion->state);
         if (vertexInGraph(nmotion->state)){
@@ -335,49 +335,18 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         }
         // TODO: not sure how to do the default dictionary thing where we just add a key into a dictionary
         setIndegrees();
-        graphSearch();
+        graphSearch();*/
 
-        
-
-
-        double d = customDistanceFunction(nmotion->state, rstate);
-        //double d = si_->distance(nmotion->state, rstate);
-
-        if (d > maxDistance_)
+        // If connector is true, no collision, add qnew to the tree, otherwise continue looping and get new one (I think?)
+        if(localConnector(nmotion->state, qNew))
         {
-            si_->getStateSpace()->interpolate(nmotion->state, rstate, maxDistance_ / d, xstate);
-            dstate = xstate;
-        }
+            std::cout << "TRUE" << std::endl;
 
-        if (si_->checkMotion(nmotion->state, dstate))
-        {
-            if (addIntermediateStates_)
-            {
-                std::vector<base::State *> states;
-                const unsigned int count = si_->getStateSpace()->validSegmentCount(nmotion->state, dstate);
-
-                if (si_->getMotionStates(nmotion->state, dstate, states, count, true, true))
-                    si_->freeState(states[0]);
-
-                for (std::size_t i = 1; i < states.size(); ++i)
-                {
-                    auto *motion = new Motion;
-                    motion->state = states[i];
-                    motion->parent = nmotion;
-                    nn_->add(motion);
-
-                    nmotion = motion;
-                }
-            }
-            else
-            {
-                auto *motion = new Motion(si_);
-                si_->copyState(motion->state, dstate);
-                motion->parent = nmotion;
-                nn_->add(motion);
-
-                nmotion = motion;
-            }
+            auto *motion = new Motion(si_);
+            si_->copyState(motion->state, qNew);
+            motion->parent = nmotion;
+            nn_->add(motion);
+            nmotion = motion;
 
             double dist = 0.0;
             bool sat = goal->isSatisfied(nmotion->state, &dist);
@@ -393,7 +362,16 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
                 approxsol = nmotion;
             }
         }
+        else
+        {
+            // TODO: need to do something here if the connector is false? --> no but maybe getting rid of intermediate states wasn't a good idea
+            std::cout << "FALSE" << std::endl;
+        }
+
+        // TODO: timing out!! not finding actual solution :( 
     }
+
+    std::cout << "done with loop" << std::endl;
 
     bool solved = false;
     bool approximate = false;

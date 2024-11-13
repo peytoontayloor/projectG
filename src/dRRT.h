@@ -507,10 +507,128 @@ namespace ompl
             std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
 
             // Stores mapping of nodes to their indegrees
-            std::map<std::vector<std::pair<double, double>>, int> indegree;
+            // We don't want this global bc changes each time we try to add qnew 
+            //std::map<std::vector<std::pair<double, double>>, int> indegree;
 
+            bool localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
+            {
+                std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> graph;
+                // First, extract each robots qnear and qnew and then add them to our graph
+                // For 4 robots, a start and goal point each, we have 8 keys to add to the map
+
+                // TODO: might need to free states after each loop? But would that free the state completely or just from this assignment?
+
+                ompl::base::State *qnear;
+                ompl::base::State *qnew;
+                for(int i = 0; i < 4; i++)
+                {
+                    qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
+                    qnew = cmpdnew->as<ompl::base::CompoundState>()->components[i];
+
+                    double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double nearY = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    std::pair<double, double> nearCoord (nearX, nearY);
+                    std::pair<double, double> newCoord (newX, newY);
+
+                    // If near is in the graph already, add qnew to its list of what it points to
+                    if(graph.find(nearCoord) != graph.end())
+                    {
+                        graph[nearCoord].push_back(newCoord);
+                    }
+                    else
+                    {
+                        // If qnew is in the graph, keep looping, if not add it in, pointing to: []
+                        if(graph.find(newCoord) != graph.end())
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            graph[newCoord];
+                        }
+                    }
+                }
+
+                // Now that we have graph storing which nodes point to which, we need to create a map of the indegrees of each node:
+                std::map<std::pair<double, double>, int> inDegree;
+                //std::vector<std::pair<double, double>> vertices;
+                std::map<std::pair<double, double>, bool> vertices;
+
+                // Loop through our main graph and initialize every node's inDegree to 0
+                // Also, create a map holding if the nodes have been visited or not
+                // Keys of our graph should have all the nodes based on how we initialized it
+                for (auto i = graph.begin(); i != graph.end(); i++)
+                {
+                    //i->first is key
+                    //i->second is value
+                    inDegree[(i->first)] = 0;
+                    //vertices.push_back(i->first);
+                    vertices[(i->first)] = false;
+                }
+
+                // Now, loop again, updating the indegrees of each node
+                for (auto i = graph.begin(); i != graph.end(); i++)
+                {
+                    // loop through the nodes it points to and update their indegrees
+                    for(size_t j = 0; j < i->second.size(); j++)
+                    {
+                        inDegree[i->second[j]] += 1;
+                    }
+                }
+
+                std::vector<std::pair<double, double>> queue;
+                // Now, get our queue which should be a vector of only the vertices with indegree = 0
+                // Behaves more like a stack than a queue lol --> should make sure this part/logic isn't buggy
+                // TODO: if buggy like ^^, use c++ queue methods (would make this cleaner probably)
+                for (auto i = inDegree.begin(); i != inDegree.end(); i++)
+                {
+                    if(i->second == 0)
+                    {
+                        queue.push_back(i->first);
+                    }
+                }
+
+                // When working with our queue, access the last element and pop the last element (pop_back() and back())
+                while(!(queue.empty()))
+                {
+                    // Pop the back element (doing this bc easy methods in c++ (pop_back, back(), push_back))
+                    std::pair<double, double> vertex = queue.back();
+                    queue.pop_back();
+
+                    // Remove vertex from list of remaining vertices
+                    // TODO: not valid, need to figure out how to remove(back)
+                    //vertices.remove(vertex);
+                    // UPDATE: made a map tracking visited vertices, mark as true if visited here:
+                    vertices[vertex] = true;
+
+                    // Get the neighbors of the removed vertex, and decrement their indegree counts, adding to queue if at 0
+                    for(size_t i = 0; i < graph[vertex].size(); i++)
+                    {
+                        inDegree[graph[vertex][i]] -= 1;
+                        if (inDegree[graph[vertex][i]] == 0)
+                        {
+                            queue.push_back(graph[vertex][i]);
+                        }
+                    }
+                }
+
+                // Once queue is empty, if one of our vertices is false, then there is a cycle somewhere/cannot assign priorities to the robots for valid movement
+                for (auto i = vertices.begin(); i != vertices.end(); i++)
+                {
+                    if (i->second == false)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+
+            }
             
-            std::vector<std::pair<double, double>> createCoordinates(ompl::base::State *state)
+            /*std::vector<std::pair<double, double>> createCoordinates(ompl::base::State *state)
             { 
                 const ompl::base::CompoundState * compoundstate = state->as<ompl::base::CompoundState>();
 
@@ -637,7 +755,7 @@ namespace ompl
                     return false;
                 }
 
-            }
+            }*/
 
         protected:
             /** \brief Representation of a motion
