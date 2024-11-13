@@ -447,12 +447,16 @@ int main(int, char **)
     // Solve with dRRT (obviously not working yet)
     ob::PlannerStatus solved = compound->solve(20);
 
+    std::ofstream solution("solution_path.txt");
+
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
 
         auto path = compound->getSolutionPath();
         path.printAsMatrix(std::cout);
+        
+        path.printAsMatrix(solution);
     }
     else{
         std::cout << "No Solution Found" << std::endl;

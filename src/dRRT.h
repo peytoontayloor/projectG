@@ -219,12 +219,12 @@ namespace ompl
                 double y_near = qnearSubState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                 std::pair<double, double> coord_near (x_near, y_near);
 
-                // std::cout << "x: " << x_near << std::endl;
-                // std::cout << "y: " << y_near << std::endl;
+                std::cout << "x: " << x_near << std::endl;
+                std::cout << "y: " << y_near << "\n" << std::endl;
 
                 auto pos = mapping.find(coord_near);
                 if (pos == mapping.end()){
-                    // std::cout << "did not find" << "\n" << std::endl;
+                    std::cout << "did not find" << "\n" << std::endl;
                     std::vector<ompl::base::State *> result = {};
                     return result;
                 }
@@ -323,6 +323,7 @@ namespace ompl
                 double randY = randState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
                 // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
+                
                 ompl::base::State *qnew = info->allocState();
                 double angle = std::numeric_limits<double>::infinity();
                 for (size_t i = 0; i < neighbors.size(); i++){
@@ -335,11 +336,14 @@ namespace ompl
                     double numerator = d * d + m * m - n * n;
                     double denominator = 2 * d * m;
                     double temp_angle = acos(numerator / denominator);
+
+                    // only keep q new if it is unexplored
                     if (temp_angle < angle){
                         info->copyState(qnew, temp);
                         angle = temp_angle;
                     }
                 }
+
 
                 return qnew;
 
@@ -448,9 +452,6 @@ namespace ompl
             // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
 
             // ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates);
-
-            
-
 
             double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
 
@@ -580,7 +581,7 @@ namespace ompl
                     }
                 }
 
-                std::vector<std::pair<double, double>> queue;
+                std::deque<std::pair<double, double>> queue;
                 // Now, get our queue which should be a vector of only the vertices with indegree = 0
                 // Behaves more like a stack than a queue lol --> should make sure this part/logic isn't buggy
                 // TODO: if buggy like ^^, use c++ queue methods (would make this cleaner probably)
@@ -596,12 +597,12 @@ namespace ompl
                 while(!(queue.empty()))
                 {
                     // Pop the back element (doing this bc easy methods in c++ (pop_back, back(), push_back))
-                    std::pair<double, double> vertex = queue.back();
-                    queue.pop_back();
+                    std::pair<double, double> vertex = queue.front();
+                    queue.pop_front();
 
                     // Remove vertex from list of remaining vertices
                     // TODO: not valid, need to figure out how to remove(back)
-                    //vertices.remove(vertex);
+                    // vertices.remove(vertex);
                     // UPDATE: made a map tracking visited vertices, mark as true if visited here:
                     vertices[vertex] = true;
 

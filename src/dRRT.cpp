@@ -313,34 +313,10 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // TODO: now need to collision check/local connector! 
         // If everything works out, add qnew to the tree and 'explored' vector- haven't incorporated yet
 
-        /*ompl::base::CompoundState * qNearCompound = nmotion->state->as<ompl::base::CompoundState>();
-        std::pair<ompl::base::State *, ompl::base::State *> r1movement (qNearCompound->components[0], qNew1);
-        std::pair<ompl::base::State *, ompl::base::State *> r2movement (qNearCompound->components[1], qNew2);
-        std::pair<ompl::base::State *, ompl::base::State *> r3movement (qNearCompound->components[2], qNew3);
-        std::pair<ompl::base::State *, ompl::base::State *> r4movement (qNearCompound->components[3], qNew4);*/
-
-        // point-path collision checker -- may not be needed
-        /*std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements = {r1movement, r2movement, r3movement, r4movement};
-        std::vector<int> robotCollisions = robotPathCollisionChecking(robotMovements);*/
-        // for (size_t i = 0; i < robotCollisions.size(); ++i){
-        //     std::cout << robotCollisions[i] << std::endl;
-        // }
-
-        /*// local connector
-        addVertex(qNew);
-        addVertex(nmotion->state);
-        if (vertexInGraph(nmotion->state)){
-            std::vector<std::vector<std::pair<double, double>>> nodes = adjList.find(createCoordinates(nmotion->state))->second;
-            nodes.push_back(createCoordinates(qNew));
-        }
-        // TODO: not sure how to do the default dictionary thing where we just add a key into a dictionary
-        setIndegrees();
-        graphSearch();*/
-
         // If connector is true, no collision, add qnew to the tree, otherwise continue looping and get new one (I think?)
         if(localConnector(nmotion->state, qNew))
         {
-            std::cout << "TRUE" << std::endl;
+            // std::cout << "TRUE" << std::endl;
 
             auto *motion = new Motion(si_);
             si_->copyState(motion->state, qNew);
