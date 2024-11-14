@@ -122,6 +122,9 @@ namespace ompl
             ompl::base::SpaceInformationPtr spaceInfo3;
             ompl::base::SpaceInformationPtr spaceInfo4;
 
+            // Vector to keep track of our explored space (ensures qrand doesn't sample from explored)
+            std::vector<ompl::base::State *>  explored;
+
             std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> createPRMNodes(PRM::Graph roadmap){
 
                 // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
@@ -314,8 +317,10 @@ namespace ompl
                 // TODO: ensure that the qnew picked is not in "explored states" --> implement this later 
 
                 // Extract the individual states from the composite ones
-                ompl::base::State* nearState = info->allocState();
-                ompl::base::State* randState = info->allocState();
+                //ompl::base::State* nearState = info->allocState();
+                //ompl::base::State* randState = info->allocState();
+                ompl::base::State* nearState;
+                ompl::base::State* randState;
                 if (rNum == 1)
                 {
                     nearState = qnear->as<ompl::base::CompoundState>()->components[0];
@@ -359,8 +364,8 @@ namespace ompl
 
                 // std::cout << "neighbors size: " << neighbors.size() << std::endl;
                 double angle = temp_angle;
+                ompl::base::State* temp = info->allocState();
                 for (size_t i = 1; i < neighbors.size(); i++){
-                    ompl::base::State* temp = info->allocState();
                     info->copyState(temp, neighbors[i]);
                     
                     double x = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
@@ -370,39 +375,21 @@ namespace ompl
                     double m = euclideanDistance(nearX, nearY, randX, randY); 
                     double numerator = d * d + m * m - n * n;
                     double denominator = 2 * d * m;
+
+                    // TODO: make sure in valid range!
+                    if (denominator == 0)
+                    {
+                        continue;
+                    }
                     double temp_angle = acos(numerator / denominator);
 
-                    // only keep q new if it is unexplored
-                    std::pair<double, double> tempCoords (x, y);
-
-                    if (temp_angle > 0 && temp_angle < angle){
-
-                        bool exploredCheck = true;
-                        if (rNum == 1)
-                        {
-                            exploredCheck = exploredR1.find(tempCoords) == exploredR1.end();
-                        }
-                        if (rNum == 2)
-                        {
-                            exploredCheck = exploredR2.find(tempCoords) == exploredR2.end();
-                        }
-                        if (rNum == 3)
-                        {
-                            exploredCheck = exploredR3.find(tempCoords) == exploredR3.end();
-                        }
-                        if (rNum == 4)
-                        {
-                            exploredCheck = exploredR4.find(tempCoords) == exploredR4.end();
-                        }
-
-                        if (exploredCheck){
-
-                            info->copyState(qnew, temp);
-                            angle = temp_angle;
-                        }
+                    if ((temp_angle > 0) && (temp_angle < angle))
+                    {
+                        info->copyState(qnew, temp);
+                        angle = temp_angle;
                     }
-                    info->freeState(temp);
                 }
+                info->freeState(temp);
 
                 if (angle == std::numeric_limits<double>::infinity()){
                     return nullptr;
@@ -419,101 +406,6 @@ namespace ompl
                 }
                 return false;
             }
-
-            std::vector<int> robotPathCollisionChecking(std::vector<std::pair<ompl::base::State *, ompl::base::State *>> robotMovements)
-            {
-                std::pair<ompl::base::State *, ompl::base::State *> r1movement = robotMovements[0];
-                std::pair<ompl::base::State *, ompl::base::State *> r2movement = robotMovements[1];
-                std::pair<ompl::base::State *, ompl::base::State *> r3movement = robotMovements[2];
-                std::pair<ompl::base::State *, ompl::base::State *> r4movement = robotMovements[3];
-                
-                double r1XQnear = r1movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r1YQnear = r1movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r1XQnew = r1movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r1YQnew = r1movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r2XQnear = r2movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r2YQnear = r2movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r2XQnew = r2movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r2YQnew = r2movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r3XQnear = r3movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r3YQnear = r3movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r3XQnew = r3movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r3YQnew = r3movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r4XQnear = r4movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r4YQnear = r4movement.first -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                double r4XQnew = r4movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double r4YQnew = r4movement.second -> as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                Line r1move;
-                r1move.x1 = r1XQnear;
-                r1move.y1 = r1YQnear;
-                r1move.x2 = r1XQnew;
-                r1move.y2 = r2YQnew;
-                
-                Line r2move;
-                r2move.x1 = r2XQnear;
-                r2move.y1 = r2YQnear;
-                r2move.x2 = r2XQnew;
-                r2move.y2 = r2YQnew;
-                
-                Line r3move;
-                r3move.x1 = r3XQnear;
-                r3move.y1 = r3YQnear;
-                r3move.x2 = r3XQnew;
-                r3move.y2 = r3YQnew;
-                
-                Line r4move;
-                r4move.x1 = r4XQnear;
-                r4move.y1 = r4YQnear;
-                r4move.x2 = r4XQnew;
-                r4move.y2 = r4YQnew;
-                
-                std::vector<int> res;
-                bool robot1Collision = linePointIntersection(r1XQnew, r1YQnew, r2move) || linePointIntersection(r1XQnew, r1YQnew, r3move) || linePointIntersection(r1XQnew, r1YQnew, r4move);
-                if (robot1Collision){
-                    res.push_back(1);
-                }
-                else{
-                    res.push_back(0);
-                }
-
-                bool robot2Collision = linePointIntersection(r2XQnew, r2YQnew, r1move) || linePointIntersection(r2XQnew, r2YQnew, r3move) || linePointIntersection(r2XQnew, r2YQnew, r4move);
-                if (robot2Collision){
-                    res.push_back(1);
-                }
-                else{
-                    res.push_back(0);
-                }
-
-                bool robot3Collision = linePointIntersection(r3XQnew, r3YQnew, r1move) || linePointIntersection(r3XQnew, r3YQnew, r2move) || linePointIntersection(r3XQnew, r3YQnew, r4move);
-                if (robot3Collision){
-                    res.push_back(1);
-                }
-                else{
-                    res.push_back(0);
-                }
-
-                bool robot4Collision = linePointIntersection(r4XQnew, r4YQnew, r1move) || linePointIntersection(r4XQnew, r4YQnew, r2move) || linePointIntersection(r4XQnew, r4YQnew, r3move);
-                if (robot4Collision){
-                    res.push_back(1);
-                }
-                else{
-                    res.push_back(0);
-                }
-                return res;
-            }
-
-            std::set<std::pair<double, double>> exploredR1;
-            std::set<std::pair<double, double>> exploredR2;
-            std::set<std::pair<double, double>> exploredR3;
-            std::set<std::pair<double, double>> exploredR4;
 
             // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
 
@@ -568,7 +460,7 @@ namespace ompl
             
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
-            ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
+            ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space, ompl::base::State *goal);
 
             // Stores mapping of nodes to a vector of nodes
             std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
@@ -587,6 +479,7 @@ namespace ompl
 
                 ompl::base::State *qnear;
                 ompl::base::State *qnew;
+                std::cout << "NEW LOCAL CHECK:" << std::endl;
                 for(int i = 0; i < 4; i++)
                 {
                     qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
@@ -598,6 +491,11 @@ namespace ompl
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
+                    std::cout << "FROM:" << std::endl;
+                    std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
+                    std::cout << "TO:" << std::endl;
+                    std::cout << "(" << newX << ", " << newY << ")" << std::endl;
+
                     std::pair<double, double> nearCoord (nearX, nearY);
                     std::pair<double, double> newCoord (newX, newY);
 
@@ -605,6 +503,10 @@ namespace ompl
                     if(graph.find(nearCoord) != graph.end())
                     {
                         graph[nearCoord].push_back(newCoord);
+                        if(graph.find(newCoord) == graph.end())
+                        {
+                            graph[newCoord];
+                        } 
                     }
                     else
                     {
@@ -628,8 +530,10 @@ namespace ompl
                 // Loop through our main graph and initialize every node's inDegree to 0
                 // Also, create a map holding if the nodes have been visited or not
                 // Keys of our graph should have all the nodes based on how we initialized it
+                //std::cout << "NEW" << std::endl;
                 for (auto i = graph.begin(); i != graph.end(); i++)
                 {
+                    //std::cout << "NODE: " << i->first.first <<  ", " << i->first.second << std::endl;
                     //i->first is key
                     //i->second is value
                     inDegree[(i->first)] = 0;
@@ -647,10 +551,9 @@ namespace ompl
                     }
                 }
 
-                std::deque<std::pair<double, double>> queue;
+                //std::deque<std::pair<double, double>> queue;
+                std::vector<std::pair<double, double>> queue;
                 // Now, get our queue which should be a vector of only the vertices with indegree = 0
-                // Behaves more like a stack than a queue lol --> should make sure this part/logic isn't buggy
-                // TODO: if buggy like ^^, use c++ queue methods (would make this cleaner probably)
                 for (auto i = inDegree.begin(); i != inDegree.end(); i++)
                 {
                     if(i->second == 0)
@@ -663,12 +566,12 @@ namespace ompl
                 while(!(queue.empty()))
                 {
                     // Pop the back element (doing this bc easy methods in c++ (pop_back, back(), push_back))
-                    std::pair<double, double> vertex = queue.front();
-                    queue.pop_front();
+                    //std::pair<double, double> vertex = queue.front();
+                    //queue.pop_front();
+                    std::pair<double, double> vertex = queue.back();
+                    queue.pop_back();
 
                     // Remove vertex from list of remaining vertices
-                    // TODO: not valid, need to figure out how to remove(back)
-                    // vertices.remove(vertex);
                     // UPDATE: made a map tracking visited vertices, mark as true if visited here:
                     vertices[vertex] = true;
 
@@ -688,141 +591,14 @@ namespace ompl
                 {
                     if (i->second == false)
                     {
+                        std::cout << "CYCLE" << std::endl;
                         return false;
                     }
                 }
                 return true;
 
             }
-            
-            /*std::vector<std::pair<double, double>> createCoordinates(ompl::base::State *state)
-            { 
-                const ompl::base::CompoundState * compoundstate = state->as<ompl::base::CompoundState>();
-
-                // Create vector of four (x, y) pairs 
-                std::vector<std::pair<double, double>> coords;
-                for (int i = 0; i < 4; ++i){
-                    double rix_coord = compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[0];
-                    double riy_coord = compoundstate->as<ompl::base::RealVectorStateSpace::StateType>(i)->values[1];
-                    
-                    std::pair<double, double> coord (rix_coord, riy_coord);
-                    coords.push_back(coord);
-                }
-                return coords;
-            }
-
-            // Turns a state into a vector of four coordinates and initializes the indegree to 0
-            void addVertex(ompl::base::State * a){
-
-                std::vector<std::pair<double, double>> coords = createCoordinates(a);
-
-                // Create node v and add indegree
-                indegree[coords] = 0;
-
-            }
-
-            bool vertexInGraph(ompl::base::State *a){
-                std::vector<std::pair<double, double>> v = createCoordinates(a);
-                std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>>::iterator it = adjList.find(v);
-                if (it == adjList.end()){
-                    return false;
-                }
-                return true;
-            }
-
-            void setIndegrees(){
-                std::deque<std::vector<std::pair<double, double>>> deque;
-                std::set<std::vector<std::pair<double, double>>> visited;
-
-                std::vector<std::pair<double, double>> firstNode = indegree.begin()->first;
-                visited.insert(firstNode);
-                deque.push_back(firstNode);
-
-                // Running BFS to set indegrees of nodes correctly
-                while (!deque.empty()){
-                    std::vector<std::pair<double, double>> node = deque.front();
-                    deque.pop_front();
-                    
-                    auto adjIt = adjList.find(node);
-                    if (adjIt != adjList.end()){
-                        std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
-                        for (size_t i = 0; i < nbrs.size(); ++i){
-                            if (visited.find(nbrs[i]) == visited.end()){
-                                visited.insert(nbrs[i]);
-                                auto indegreeIt = indegree.find(node);
-                                if (indegreeIt!= indegree.end()){
-                                    indegree[nbrs[i]] = indegree[nbrs[i]] + 1;
-                                }
-                                deque.push_back(nbrs[i]);
-                            }
-                        }
-                    }
-
-                }
-            }
-
-            bool graphSearch(){
-
-                std::vector<std::vector<std::pair<double, double>>> verts;
-                std::set<std::vector<std::pair<double, double>>> visited;
-                
-                std::deque<std::vector<std::pair<double, double>>> deque;
-
-                std::map<std::vector<std::pair<double, double>>, int>::iterator it;
-                for (it = indegree.begin(); it != indegree.end(); it++)
-                {
-                    if (it->second == 0){
-                        deque.push_back(it->first);
-                        visited.insert(it->first);
-                    }
-                    verts.push_back(it->first);
-                }
-
-                while (!deque.empty()){
-                    std::vector<std::pair<double, double>> node = deque.front();
-
-                    // Double checking here that node is in verts, it should be
-                    std::vector<std::vector<std::pair<double, double>>>::iterator vertsIt = std::find(verts.begin(), verts.end(), node);
-                    if (vertsIt != verts.end()){
-                        verts.erase(vertsIt);
-                    }
-
-                    deque.pop_front();
-
-                    // Running bfs 
-                    auto adjIt = adjList.find(node);
-                    if (adjIt != adjList.end()){
-                        std::vector<std::vector<std::pair<double, double>>> nbrs = adjIt->second;
-
-                        // iterate through neighbors
-                        for (size_t i = 0; i < nbrs.size(); ++i){
-
-                            // Ensure nbr[i] is not visited yet
-                            if (visited.find(nbrs[i]) == visited.end()){
-                                visited.insert(nbrs[i]);
-
-                                // Decrement indegrees
-                                auto indegreeIt = indegree.find(node);
-                                if (indegreeIt!= indegree.end()){
-                                    indegree[nbrs[i]] = indegree[nbrs[i]] - 1;
-
-                                    // If indegrees becomes 0, add to queue
-                                    if (indegree[nbrs[i]] == 0){
-                                        deque.push_back(nbrs[i]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (verts.empty()){
-                    return true;
-                }
-                else{
-                    return false;
-                }
-
-            }*/
+         
 
         protected:
             /** \brief Representation of a motion

@@ -8,6 +8,7 @@
 #include <ompl/base/StateValidityChecker.h>
 #include <vector>
 #include <utility>
+#include <ompl/base/GoalState.h>
 
 #include "dRRT.h"
 
@@ -66,7 +67,7 @@ void ompl::geometric::dRRT::freeMemory()
     }
 }
 
-ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space)
+ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space, ompl::base::State *goal)
 {
 
     // ALSO! Need to collision check against obstacles here? Or somewhere- Not sure? 
@@ -83,6 +84,8 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
     ompl::base::State* r2State = robot2[i2];
     ompl::base::State* r3State = robot3[i3];
     ompl::base::State* r4State = robot4[i4];
+
+    // TODO: Need to make sure none of our states are in the goal states corresponding dimension
 
     // Need to collision check here!
                 
@@ -103,7 +106,13 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
     compound->getSubspace(3)->copyState(cmp->components[3], r4State);
 
     // TODO: need to check that returnState is not in explored set! 
-
+    for(size_t i = 0; i < explored.size(); i++)
+    {
+        if (returnState == explored[i])
+        {
+            return nullptr;
+        }
+    }
     return returnState;
 
 }
@@ -151,8 +160,8 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
     double approxdif = std::numeric_limits<double>::infinity();
     auto *rmotion = new Motion(si_);
     base::State *rstate = rmotion->state;
-    base::State *xstate = si_->allocState();
-
+    //base::State *xstate = si_->allocState();
+    const auto *gState = goal->as<ompl::base::GoalState>().getState();
     while (!ptc)
     {
         /* sample random state (with goal biasing) */
@@ -166,14 +175,19 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             //compoundStateSampler_.sampleUniform(rstate);
             
             //rstate = getCompositeStates(si_->getStateSpace(), si_);
-            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace());
+            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace(), gState);
+            if (tempState == nullptr)
+            {
+                //si_->freeState(tempState);
+                continue;
+            }
             si_->copyState(rstate, tempState);
             si_->freeState(tempState);
 
         }
         /* find closest state in the tree */
         Motion *nmotion = nn_->nearest(rmotion);
-        base::State *dstate = rstate;
+        //base::State *dstate = rstate;
 
         // nmotion->state is our qnear! 
         // First, find k-nearest neighbors of qnear (right now, k is 2)
@@ -183,7 +197,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         std::vector<ompl::base::State *> nbrR3 = neighbors(nmotion->state, 3);
         std::vector<ompl::base::State *> nbrR4 = neighbors(nmotion->state, 4);
 
-        if ((nbrR1.empty()) or (nbrR2.empty()) or (nbrR3.empty()) or (nbrR4.empty()))
+        if ((nbrR1.empty()) || (nbrR2.empty()) || (nbrR3.empty()) || (nbrR4.empty()))
         {
             std::cout << "NO NEIGHBOR, PICKING NEW QRAND" << std::endl;
             continue;
@@ -232,6 +246,22 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         compound->getSubspace(1)->copyState(qNewCompound->components[1], qNew2);
         compound->getSubspace(2)->copyState(qNewCompound->components[2], qNew3);
         compound->getSubspace(3)->copyState(qNewCompound->components[3], qNew4);
+
+        // Only work with qnew if it is unexplored 
+        bool unexplored = true;
+        for(size_t i = 0; i < explored.size(); i++)
+        {
+            if (qNew == explored[i])
+                {
+                    unexplored = false;
+                    break;
+                }
+        }
+        if (unexplored == false)
+        {
+            si_->freeState(qNew);
+            continue;
+        }
         // std::cout << "Line 291" << std::endl;
 
         // TODO: now need to collision check/local connector! 
@@ -249,7 +279,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
             // Insert each robot's state into respective robot's set of explored nodes
 
-            double x_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+            /*double x_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
             double y_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
             std::pair<double, double> explored_1 (x_new_1, y_new_1);
             exploredR1.insert(explored_1);
@@ -267,7 +297,10 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             double x_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
             double y_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
             std::pair<double, double> explored_4 (x_new_4, y_new_4);
-            exploredR1.insert(explored_4);
+            exploredR1.insert(explored_4);*/
+
+            // Add qnew to set of our explored tree:
+            explored.push_back(qNew);
 
             nmotion = motion;
 
@@ -287,8 +320,9 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         }
         else
         {
-            // TODO: need to do something here if the connector is false? --> no but maybe getting rid of intermediate states wasn't a good idea
             std::cout << "FALSE" << std::endl;
+            // Discard qnew if not added to tree:
+            si_->freeState(qNew);
         }
 
         // TODO: timing out!! not finding actual solution :( 
@@ -324,7 +358,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         solved = true;
     }
 
-    si_->freeState(xstate);
+    //si_->freeState(xstate);
     if (rmotion->state != nullptr)
         si_->freeState(rmotion->state);
     delete rmotion;
