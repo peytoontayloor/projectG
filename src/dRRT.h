@@ -165,14 +165,12 @@ namespace ompl
 
                 // std::cout << "---------" << std::endl;
 
-                // std::map<std::pair<double, double>, long signed int> ::iterator it;
-
-                // for (it = map.begin(); it != map.end(); it++)
+                // for (auto it = map.begin(); it != map.end(); it++)
                 // {
-                //     std::cout << "(" << it->first.first  << ", "  // string (key)
-                //             << it->first.second  << " ) "  // string (key)
+                //     std::cout << "(" << it->first.first  << ", " // x coordinate
+                //             << it->first.second  << " ) "        // y coordinate
                 //             << ':'
-                //             << it->second   // string's value 
+                //             << it->second                        // vertex descriptor
                 //             << std::endl;
                 // }
                 return result;
@@ -187,10 +185,10 @@ namespace ompl
                 // std::map<std::pair<double, double>, long signed int> ::iterator it;
                 // for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
                 // {
-                //     std::cout << "(" << it->first.first  << ", "  // string (key)
-                //              << it->first.second  << " ) "  // string (key)
+                //     std::cout << "(" << it->first.first  << ", "  // x coordinate
+                //              << it->first.second  << " ) "       // y coordinate
                 //             << ':'
-                //             << it->second   // string's value 
+                //             << it->second                         // vertex descriptor
                 //             << std::endl;
                 // }
                 
@@ -491,10 +489,10 @@ namespace ompl
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-                    std::cout << "NEAR:" << std::endl;
-                    std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
-                    std::cout << "NEW:" << std::endl;
-                    std::cout << "(" << newX << ", " << newY << ")" << std::endl;
+                    // std::cout << "NEAR:" << std::endl;
+                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
+                    // std::cout << "NEW:" << std::endl;
+                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
 
                     std::pair<double, double> nearCoord (nearX, nearY);
                     std::pair<double, double> newCoord (newX, newY);
@@ -520,7 +518,21 @@ namespace ompl
                             graph[newCoord];
                         }
                     }
+
                 }
+                
+                std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> ::iterator it;
+                for (it = graph.begin(); it != graph.end(); it++)
+                {
+                    std::cout << "(" << it->first.first  << ", " << it->first.second << ")" << std::endl;
+                    std::cout << "[" << std::endl;
+                    std::cout << it->second.size() << std::endl;
+                    for (size_t i = 0; i < it->second.size(); i++){
+                        std::cout << it->second[i].first << ", " << it->second[i].second << std::endl;
+                    }
+                    std::cout << "] \n" << std::endl;
+                }
+                
 
                 // Now that we have graph storing which nodes point to which, we need to create a map of the indegrees of each node:
                 std::map<std::pair<double, double>, int> inDegree;
