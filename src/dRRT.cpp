@@ -8,7 +8,7 @@
 #include <ompl/base/StateValidityChecker.h>
 #include <vector>
 #include <utility>
-#include <ompl/base/GoalState.h>
+#include <ompl/base/goals/GoalState.h>
 
 #include "dRRT.h"
 
@@ -86,6 +86,38 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
     ompl::base::State* r4State = robot4[i4];
 
     // TODO: Need to make sure none of our states are in the goal states corresponding dimension
+    // If r1 is equal to dimension 1 goal state, then exit null and resample, and so on
+    /*ompl::base::State *goal1 = goal->as<ompl::base::CompoundState>()->components[0];
+    double x1 = goal1->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+    double y1 = goal1->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+    if((x1 == r1State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y1 == r1State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
+    {
+        return nullptr;
+    }
+
+    ompl::base::State *goal2 = goal->as<ompl::base::CompoundState>()->components[1];
+    double x2 = goal2->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+    double y2 = goal2->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+    if((x2== r2State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y2 == r2State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
+    {
+        return nullptr;
+    }
+
+    ompl::base::State *goal3 = goal->as<ompl::base::CompoundState>()->components[2];
+    double x3 = goal3->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+    double y3 = goal3->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+    if((x3 == r3State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y3== r3State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
+    {
+        return nullptr;
+    }
+
+    ompl::base::State *goal4 = goal->as<ompl::base::CompoundState>()->components[3];
+    double x4 = goal4->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+    double y4 = goal4->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+    if((x4 == r4State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y4 == r4State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
+    {
+        return nullptr;
+    }*/
 
     // Need to collision check here!
                 
@@ -161,7 +193,8 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
     auto *rmotion = new Motion(si_);
     base::State *rstate = rmotion->state;
     //base::State *xstate = si_->allocState();
-    const auto *gState = goal->as<ompl::base::GoalState>().getState();
+    auto *g = goal->as<ompl::base::GoalState>();
+   // ompl::base::State *gState = g->getState();
     while (!ptc)
     {
         /* sample random state (with goal biasing) */
@@ -175,7 +208,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             //compoundStateSampler_.sampleUniform(rstate);
             
             //rstate = getCompositeStates(si_->getStateSpace(), si_);
-            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace(), gState);
+            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace(), g->getState());
             if (tempState == nullptr)
             {
                 //si_->freeState(tempState);

@@ -479,7 +479,7 @@ namespace ompl
 
                 ompl::base::State *qnear;
                 ompl::base::State *qnew;
-                std::cout << "NEW LOCAL CHECK:" << std::endl;
+                //std::cout << "NEW LOCAL CHECK:" << std::endl;
                 for(int i = 0; i < 4; i++)
                 {
                     qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
@@ -491,9 +491,9 @@ namespace ompl
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-                    std::cout << "FROM:" << std::endl;
+                    std::cout << "NEAR:" << std::endl;
                     std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
-                    std::cout << "TO:" << std::endl;
+                    std::cout << "NEW:" << std::endl;
                     std::cout << "(" << newX << ", " << newY << ")" << std::endl;
 
                     std::pair<double, double> nearCoord (nearX, nearY);
