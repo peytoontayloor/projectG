@@ -268,8 +268,8 @@ namespace ompl
                         ompl::base::State *state = boost::get(stateMap, *ai);
                         states.push_back(state);
 
-                        double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                        double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                        //double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                        //double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
                         // std::cout << "x: " << x << std::endl;
                         // std::cout << "y: " << y << "\n" << std::endl;
@@ -294,7 +294,10 @@ namespace ompl
                     return getAdjacentVertices(r3RM, robot3mapping, qnear, robotId);
                 }
 
-                if (robotId == 4){
+                // If we are not passing parameters right, this will cause a bug
+                //else if (robotId == 4){
+                else
+                {
                     return getAdjacentVertices(r4RM, robot4mapping, qnear, robotId);
                 }
 
@@ -317,8 +320,10 @@ namespace ompl
                 // Extract the individual states from the composite ones
                 //ompl::base::State* nearState = info->allocState();
                 //ompl::base::State* randState = info->allocState();
-                ompl::base::State* nearState;
-                ompl::base::State* randState;
+
+                // Assigned ot nullptr to fix comiler warnings, shouldn't ever not hit one of the conditions
+                ompl::base::State* nearState = nullptr;
+                ompl::base::State* randState = nullptr;
                 if (rNum == 1)
                 {
                     nearState = qnear->as<ompl::base::CompoundState>()->components[0];
@@ -391,6 +396,8 @@ namespace ompl
                 info->freeState(temp);
 
                 if (angle == std::numeric_limits<double>::infinity()){
+
+                    info->freeState(qnew);
                     return nullptr;
                 }
 
@@ -459,7 +466,7 @@ namespace ompl
             
 
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
-            ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space, ompl::base::State *goal);
+            ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
 
             // Stores mapping of nodes to a vector of nodes
             std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;

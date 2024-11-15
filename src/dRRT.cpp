@@ -54,6 +54,12 @@ void ompl::geometric::dRRT::setup()
 
 void ompl::geometric::dRRT::freeMemory()
 {
+    for (size_t i = 0; i < explored.size(); i++)
+    {
+        si_->freeState(explored[i]);
+    }
+    explored.clear();
+
     if (nn_)
     {
         std::vector<Motion *> motions;
@@ -67,7 +73,7 @@ void ompl::geometric::dRRT::freeMemory()
     }
 }
 
-ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space, ompl::base::State *goal)
+ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space)
 {
 
     // ALSO! Need to collision check against obstacles here? Or somewhere- Not sure? 
@@ -84,40 +90,6 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
     ompl::base::State* r2State = robot2[i2];
     ompl::base::State* r3State = robot3[i3];
     ompl::base::State* r4State = robot4[i4];
-
-    // TODO: Need to make sure none of our states are in the goal states corresponding dimension
-    // If r1 is equal to dimension 1 goal state, then exit null and resample, and so on
-    /*ompl::base::State *goal1 = goal->as<ompl::base::CompoundState>()->components[0];
-    double x1 = goal1->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-    double y1 = goal1->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-    if((x1 == r1State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y1 == r1State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
-    {
-        return nullptr;
-    }
-
-    ompl::base::State *goal2 = goal->as<ompl::base::CompoundState>()->components[1];
-    double x2 = goal2->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-    double y2 = goal2->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-    if((x2== r2State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y2 == r2State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
-    {
-        return nullptr;
-    }
-
-    ompl::base::State *goal3 = goal->as<ompl::base::CompoundState>()->components[2];
-    double x3 = goal3->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-    double y3 = goal3->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-    if((x3 == r3State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y3== r3State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
-    {
-        return nullptr;
-    }
-
-    ompl::base::State *goal4 = goal->as<ompl::base::CompoundState>()->components[3];
-    double x4 = goal4->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-    double y4 = goal4->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-    if((x4 == r4State->as<ompl::base::RealVectorStateSpace::StateType>()->values[0]) and (y4 == r4State->as<ompl::base::RealVectorStateSpace::StateType>()->values[1]))
-    {
-        return nullptr;
-    }*/
 
     // Need to collision check here!
                 
@@ -193,7 +165,6 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
     auto *rmotion = new Motion(si_);
     base::State *rstate = rmotion->state;
     //base::State *xstate = si_->allocState();
-    auto *g = goal->as<ompl::base::GoalState>();
    // ompl::base::State *gState = g->getState();
     while (!ptc)
     {
@@ -208,7 +179,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             //compoundStateSampler_.sampleUniform(rstate);
             
             //rstate = getCompositeStates(si_->getStateSpace(), si_);
-            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace(), g->getState());
+            ompl::base::State* tempState = customCompositeSampler(si_->getStateSpace());
             if (tempState == nullptr)
             {
                 //si_->freeState(tempState);
@@ -258,27 +229,45 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         if(qNew1 == nullptr)
         {
             std::cout << "new 1" << std::endl;
+            spaceInfo2->freeState(qNew2);
+            spaceInfo3->freeState(qNew3);
+            spaceInfo4->freeState(qNew4);
             continue;
         }
         if(qNew2 == nullptr)
         {
             std::cout << "new 2" << std::endl;
+            spaceInfo2->freeState(qNew1);
+            spaceInfo3->freeState(qNew3);
+            spaceInfo4->freeState(qNew4);
             continue;
         }
         if(qNew3 == nullptr)
         {
             std::cout << "new 3" << std::endl;
+            spaceInfo2->freeState(qNew2);
+            spaceInfo3->freeState(qNew1);
+            spaceInfo4->freeState(qNew4);
             continue;
         }
         if(qNew4 == nullptr)
         {
             std::cout << "new 4" << std::endl;
+            spaceInfo2->freeState(qNew2);
+            spaceInfo3->freeState(qNew3);
+            spaceInfo4->freeState(qNew1);
             continue;
         }
         compound->getSubspace(0)->copyState(qNewCompound->components[0], qNew1);
         compound->getSubspace(1)->copyState(qNewCompound->components[1], qNew2);
         compound->getSubspace(2)->copyState(qNewCompound->components[2], qNew3);
         compound->getSubspace(3)->copyState(qNewCompound->components[3], qNew4);
+
+        
+        spaceInfo3->freeState(qNew1);
+        spaceInfo4->freeState(qNew2);
+        spaceInfo2->freeState(qNew3);
+        spaceInfo3->freeState(qNew4);
 
         // Only work with qnew if it is unexplored 
         bool unexplored = true;

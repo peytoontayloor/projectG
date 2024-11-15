@@ -1,6 +1,5 @@
 # include <utility>
 # include <vector>
-# include "Robot.h"
 
 // For new state point validity checker
 #include <ompl/base/spaces/SE2StateSpace.h>
@@ -36,4 +35,4 @@ bool isValidPoint(double x, double y, const std::vector<Rectangle>& obstacles);
 
 bool isValidStatePoint(const ompl::base::State* state, const std::vector<Rectangle>& obstacles);
 
-std::vector<int> robotRobotCollisionCheck(Robot r1, std::vector<Robot>& robots);
+//std::vector<int> robotRobotCollisionCheck(Robot r1, std::vector<Robot>& robots);

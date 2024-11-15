@@ -14,6 +14,7 @@
 # include <ompl/geometric/planners/rrt/RRT.h>
 # include <ompl/control/SimpleSetup.h>
 #include <ompl/control/ODESolver.h>
+#include <string>
 
 #include <ompl/geometric/SimpleSetup.h>
 
