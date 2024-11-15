@@ -301,61 +301,79 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // If everything works out, add qnew to the tree and 'explored' vector- haven't incorporated yet
 
         // If connector is true, no collision, add qnew to the tree, otherwise continue looping and get new one (I think?)
-        if(localConnector(nmotion->state, qNew))
-        {
-            // std::cout << "TRUE" << std::endl;
+        std::set<std::pair<double, double>> stay = localConnector(nmotion->state, qNew);
+        if (stay.size() > 0){ // if we found a cycle
+            ompl::base::State *qnear;
+            ompl::base::State *qnew;
+            for (int i = 0 ; i < 4; ++i){
 
-            auto *motion = new Motion(si_);
-            si_->copyState(motion->state, qNew);
-            motion->parent = nmotion;
-            nn_->add(motion);
+                qnear = nmotion->state->as<ompl::base::CompoundState>()->components[i];
+                qnew = nmotion->state->as<ompl::base::CompoundState>()->components[i];
 
-            // Insert each robot's state into respective robot's set of explored nodes
+                double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double nearY = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-            /*double x_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
-            double y_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
-            std::pair<double, double> explored_1 (x_new_1, y_new_1);
-            exploredR1.insert(explored_1);
+                double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-            double x_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
-            double y_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
-            std::pair<double, double> explored_2 (x_new_2, y_new_2);
-            exploredR1.insert(explored_2);
+                std::pair<double, double> newCoord (newX, newY);
+                std::pair<double, double> nearCoord (nearX, nearY);
 
-            double x_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
-            double y_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];  
-            std::pair<double, double> explored_3 (x_new_3, y_new_3);
-            exploredR1.insert(explored_3);
-                
-            double x_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
-            double y_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
-            std::pair<double, double> explored_4 (x_new_4, y_new_4);
-            exploredR1.insert(explored_4);*/
+                if (stay.find(newCoord) != stay.end()) // if robot needs to stay put, set q new to q near
+                {
+                    qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0] = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1] = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                }
 
-            // Add qnew to set of our explored tree:
-            explored.push_back(qNew);
-
-            nmotion = motion;
-
-            double dist = 0.0;
-            bool sat = goal->isSatisfied(nmotion->state, &dist);
-            if (sat)
-            {
-                approxdif = dist;
-                solution = nmotion;
-                break;
-            }
-            if (dist < approxdif)
-            {
-                approxdif = dist;
-                approxsol = nmotion;
             }
         }
-        else
+
+        // std::cout << "TRUE" << std::endl;
+
+        auto *motion = new Motion(si_);
+        si_->copyState(motion->state, qNew);
+        motion->parent = nmotion;
+        nn_->add(motion);
+
+        // Insert each robot's state into respective robot's set of explored nodes
+
+        /*double x_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
+        double y_new_1 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
+        std::pair<double, double> explored_1 (x_new_1, y_new_1);
+        exploredR1.insert(explored_1);
+
+        double x_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
+        double y_new_2 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
+        std::pair<double, double> explored_2 (x_new_2, y_new_2);
+        exploredR1.insert(explored_2);
+
+        double x_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
+        double y_new_3 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];  
+        std::pair<double, double> explored_3 (x_new_3, y_new_3);
+        exploredR1.insert(explored_3);
+            
+        double x_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
+        double y_new_4 = qNewCompound->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
+        std::pair<double, double> explored_4 (x_new_4, y_new_4);
+        exploredR1.insert(explored_4);*/
+
+        // Add qnew to set of our explored tree:
+        explored.push_back(qNew);
+
+        nmotion = motion;
+
+        double dist = 0.0;
+        bool sat = goal->isSatisfied(nmotion->state, &dist);
+        if (sat)
         {
-            std::cout << "FALSE" << std::endl;
-            // Discard qnew if not added to tree:
-            si_->freeState(qNew);
+            approxdif = dist;
+            solution = nmotion;
+            break;
+        }
+        if (dist < approxdif)
+        {
+            approxdif = dist;
+            approxsol = nmotion;
         }
 
         // TODO: timing out!! not finding actual solution :( 

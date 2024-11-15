@@ -467,7 +467,7 @@ namespace ompl
             // We don't want this global bc changes each time we try to add qnew 
             //std::map<std::vector<std::pair<double, double>>, int> indegree;
 
-            bool localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
+            std::set<std::pair<double, double>> localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
             {
                 std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> graph;
                 // First, extract each robots qnear and qnew and then add them to our graph
@@ -623,15 +623,18 @@ namespace ompl
                 }
 
                 // Once queue is empty, if one of our vertices is false, then there is a cycle somewhere/cannot assign priorities to the robots for valid movement
+                
+                std::set<std::pair<double, double>> remainingNodes;
                 for (auto i = vertices.begin(); i != vertices.end(); i++)
                 {
                     if (i->second == false)
                     {
                         std::cout << "CYCLE" << std::endl;
-                        return false;
+                        std::cout << i->first.first << "," << i->first.second << std::endl;
+                        remainingNodes.insert(i->first);
                     }
                 }
-                return true;
+                return remainingNodes;
 
             }
          
