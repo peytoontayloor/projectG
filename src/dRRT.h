@@ -381,6 +381,7 @@ namespace ompl
                     }
                     double temp_angle = acos(numerator / denominator);
 
+                    // TODO: Is the > 0 check necessary? --> are negative angles okay? 
                     if ((temp_angle > 0) && (temp_angle < angle))
                     {
                         info->copyState(qnew, temp);
@@ -467,6 +468,7 @@ namespace ompl
             // We don't want this global bc changes each time we try to add qnew 
             //std::map<std::vector<std::pair<double, double>>, int> indegree;
 
+            //std::set<std::pair<double, double>> 
             std::set<std::pair<double, double>> localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
             {
                 std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> graph;
@@ -481,52 +483,6 @@ namespace ompl
                 for(int i = 0; i < 4; i++)
                 {
                     qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
-                    // qnew = cmpdnew->as<ompl::base::CompoundState>()->components[i];
-
-                    double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                    double nearY = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                    // double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                    // double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                    // std::cout << "NEAR:" << std::endl;
-                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
-                    // std::cout << "NEW:" << std::endl;
-                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
-
-                    std::pair<double, double> nearCoord (nearX, nearY);
-                    // std::pair<double, double> newCoord (newX, newY);
-
-                    // add all the q nears
-                    graph[nearCoord];
-
-                    // // If near is in the graph already, add qnew to its list of what it points to
-                    // if(graph.find(nearCoord) != graph.end())
-                    // {
-                    //     graph[nearCoord].push_back(newCoord);
-                    //     if(graph.find(newCoord) == graph.end())
-                    //     {
-                    //         graph[newCoord];
-                    //     } 
-                    // }
-                    // else
-                    // {
-                    //     // If qnew is in the graph, keep looping, if not add it in, pointing to: []
-                    //     if(graph.find(newCoord) != graph.end())
-                    //     {
-                    //         continue;
-                    //     }
-                    //     else
-                    //     {
-                    //         graph[newCoord];
-                    //     }
-                    // }
-
-                }
-
-                for (int i = 0 ; i < 4; ++i){
-
-                    qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
                     qnew = cmpdnew->as<ompl::base::CompoundState>()->components[i];
 
                     double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
@@ -535,27 +491,25 @@ namespace ompl
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-                    std::pair<double, double> newCoord (newX, newY);
-                    std::pair<double, double> nearCoord (nearX, nearY);
+                    // std::cout << "NEAR:" << std::endl;
+                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
+                    // std::cout << "NEW:" << std::endl;
+                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
 
-                    if (graph.find(newCoord) != graph.end())
+                    std::pair<double, double> nearCoord (nearX, nearY);
+                    std::pair<double, double> newCoord (newX, newY);
+
+                    if (graph.find(nearCoord) == graph.end())
                     {
-                        graph[newCoord].push_back(nearCoord);
+                        graph[nearCoord] = std::vector<std::pair<double, double>>();
+                    }
+                    if (graph.find(newCoord) == graph.end())
+                    {
+                        graph[newCoord] = std::vector<std::pair<double, double>>();
                     }
 
+                    graph[nearCoord].push_back(newCoord);
                 }
-                
-                // std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> ::iterator it;
-                // for (it = graph.begin(); it != graph.end(); it++)
-                // {
-                //     std::cout << "(" << it->first.first  << ", " << it->first.second << ")" << std::endl;
-                //     std::cout << "[" << std::endl;
-                //     std::cout << it->second.size() << std::endl;
-                //     for (size_t i = 0; i < it->second.size(); i++){
-                //         std::cout << it->second[i].first << ", " << it->second[i].second << std::endl;
-                //     }
-                //     std::cout << "] \n" << std::endl;
-                // }
                 
 
                 // Now that we have graph storing which nodes point to which, we need to create a map of the indegrees of each node:
@@ -629,13 +583,10 @@ namespace ompl
                 {
                     if (i->second == false)
                     {
-                        std::cout << "CYCLE" << std::endl;
-                        std::cout << i->first.first << "," << i->first.second << std::endl;
                         remainingNodes.insert(i->first);
                     }
                 }
                 return remainingNodes;
-
             }
          
 
