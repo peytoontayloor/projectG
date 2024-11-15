@@ -308,7 +308,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             for (int i = 0 ; i < 4; ++i){
 
                 qnear = nmotion->state->as<ompl::base::CompoundState>()->components[i];
-                qnew = nmotion->state->as<ompl::base::CompoundState>()->components[i];
+                qnew = qNew->as<ompl::base::CompoundState>()->components[i];
 
                 double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                 double nearY = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
@@ -327,6 +327,8 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
             }
         }
+
+        // Now add qnew to the tree
 
         // std::cout << "TRUE" << std::endl;
 
@@ -375,8 +377,6 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
             approxdif = dist;
             approxsol = nmotion;
         }
-
-        // TODO: timing out!! not finding actual solution :( 
     }
 
     std::cout << "done with loop" << std::endl;

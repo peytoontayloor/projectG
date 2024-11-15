@@ -37,5 +37,5 @@ while wait:
         else:
             print("Invalid input. Enter 1")
 
-plt.savefig('pathvis.png')
+plt.savefig('pathvis4.png')
 plt.show()
