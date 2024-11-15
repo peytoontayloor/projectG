@@ -481,6 +481,52 @@ namespace ompl
                 for(int i = 0; i < 4; i++)
                 {
                     qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
+                    // qnew = cmpdnew->as<ompl::base::CompoundState>()->components[i];
+
+                    double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double nearY = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    // double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    // double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+
+                    // std::cout << "NEAR:" << std::endl;
+                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
+                    // std::cout << "NEW:" << std::endl;
+                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
+
+                    std::pair<double, double> nearCoord (nearX, nearY);
+                    // std::pair<double, double> newCoord (newX, newY);
+
+                    // add all the q nears
+                    graph[nearCoord];
+
+                    // // If near is in the graph already, add qnew to its list of what it points to
+                    // if(graph.find(nearCoord) != graph.end())
+                    // {
+                    //     graph[nearCoord].push_back(newCoord);
+                    //     if(graph.find(newCoord) == graph.end())
+                    //     {
+                    //         graph[newCoord];
+                    //     } 
+                    // }
+                    // else
+                    // {
+                    //     // If qnew is in the graph, keep looping, if not add it in, pointing to: []
+                    //     if(graph.find(newCoord) != graph.end())
+                    //     {
+                    //         continue;
+                    //     }
+                    //     else
+                    //     {
+                    //         graph[newCoord];
+                    //     }
+                    // }
+
+                }
+
+                for (int i = 0 ; i < 4; ++i){
+
+                    qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
                     qnew = cmpdnew->as<ompl::base::CompoundState>()->components[i];
 
                     double nearX = qnear->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
@@ -489,49 +535,27 @@ namespace ompl
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
 
-                    // std::cout << "NEAR:" << std::endl;
-                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
-                    // std::cout << "NEW:" << std::endl;
-                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
-
-                    std::pair<double, double> nearCoord (nearX, nearY);
                     std::pair<double, double> newCoord (newX, newY);
+                    std::pair<double, double> nearCoord (nearX, nearY);
 
-                    // If near is in the graph already, add qnew to its list of what it points to
-                    if(graph.find(nearCoord) != graph.end())
+                    if (graph.find(newCoord) != graph.end())
                     {
-                        graph[nearCoord].push_back(newCoord);
-                        if(graph.find(newCoord) == graph.end())
-                        {
-                            graph[newCoord];
-                        } 
-                    }
-                    else
-                    {
-                        // If qnew is in the graph, keep looping, if not add it in, pointing to: []
-                        if(graph.find(newCoord) != graph.end())
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            graph[newCoord];
-                        }
+                        graph[newCoord].push_back(nearCoord);
                     }
 
                 }
                 
-                std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> ::iterator it;
-                for (it = graph.begin(); it != graph.end(); it++)
-                {
-                    std::cout << "(" << it->first.first  << ", " << it->first.second << ")" << std::endl;
-                    std::cout << "[" << std::endl;
-                    std::cout << it->second.size() << std::endl;
-                    for (size_t i = 0; i < it->second.size(); i++){
-                        std::cout << it->second[i].first << ", " << it->second[i].second << std::endl;
-                    }
-                    std::cout << "] \n" << std::endl;
-                }
+                // std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> ::iterator it;
+                // for (it = graph.begin(); it != graph.end(); it++)
+                // {
+                //     std::cout << "(" << it->first.first  << ", " << it->first.second << ")" << std::endl;
+                //     std::cout << "[" << std::endl;
+                //     std::cout << it->second.size() << std::endl;
+                //     for (size_t i = 0; i < it->second.size(); i++){
+                //         std::cout << it->second[i].first << ", " << it->second[i].second << std::endl;
+                //     }
+                //     std::cout << "] \n" << std::endl;
+                // }
                 
 
                 // Now that we have graph storing which nodes point to which, we need to create a map of the indegrees of each node:
