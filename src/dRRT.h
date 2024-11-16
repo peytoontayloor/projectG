@@ -122,9 +122,6 @@ namespace ompl
             ompl::base::SpaceInformationPtr spaceInfo3;
             ompl::base::SpaceInformationPtr spaceInfo4;
 
-            // Vector to keep track of our explored space (ensures qrand doesn't sample from explored)
-            std::vector<ompl::base::State *>  explored;
-
             std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> createPRMNodes(PRM::Graph roadmap){
 
                 // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
@@ -163,16 +160,6 @@ namespace ompl
                 // Make tuple of vector of states and mapping to return
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> result(states, map);
 
-                // std::cout << "---------" << std::endl;
-
-                // for (auto it = map.begin(); it != map.end(); it++)
-                // {
-                //     std::cout << "(" << it->first.first  << ", " // x coordinate
-                //             << it->first.second  << " ) "        // y coordinate
-                //             << ':'
-                //             << it->second                        // vertex descriptor
-                //             << std::endl;
-                // }
                 return result;
             }
 
@@ -312,14 +299,6 @@ namespace ompl
             ompl::base::State* oracle(ompl::base::State* qnear, ompl::base::State* qrand, std::vector<ompl::base::State *> neighbors, int rNum, ompl::base::SpaceInformationPtr info)
             {
                 // This will return a state, qnew, such that angle is minimized (following algorithm provided in paper)
-                
-                // Do not need to make a newmotion here, will be done at the end of all robot's qnews being generated
-
-                // TODO: ensure that the qnew picked is not in "explored states" --> implement this later 
-
-                // Extract the individual states from the composite ones
-                //ompl::base::State* nearState = info->allocState();
-                //ompl::base::State* randState = info->allocState();
 
                 // Assigned ot nullptr to fix comiler warnings, shouldn't ever not hit one of the conditions
                 ompl::base::State* nearState = nullptr;
@@ -354,25 +333,14 @@ namespace ompl
                 // find q new by minimizing angle between line from q_near--q_rand and q_new---q_rand
                 
                 ompl::base::State *qnew = info->allocState();
-                info->copyState(qnew, neighbors[0]);
-
-                double x_ = neighbors[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                double y_ = neighbors[0]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-                double d_ = euclideanDistance(nearX, nearY, x_, y_);
-                double n_ = euclideanDistance(randX, randY, x_, y_);
-                double m_ = euclideanDistance(nearX, nearY, randX, randY); 
-                double numerator = d_ * d_ + m_ * m_ - n_ * n_;
-                double denominator = 2 * d_ * m_;
-                double temp_angle = acos(numerator / denominator);
-
-                // std::cout << "neighbors size: " << neighbors.size() << std::endl;
-                double angle = temp_angle;
-                ompl::base::State* temp = info->allocState();
+                double angle = std::numeric_limits<double>::infinity();
+                
+                //ompl::base::State* temp = info->allocState();
                 for (size_t i = 1; i < neighbors.size(); i++){
-                    info->copyState(temp, neighbors[i]);
+                    //info->copyState(temp, neighbors[i]);
                     
-                    double x = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                    double y = temp->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
+                    double x = neighbors[i]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
+                    double y = neighbors[i]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
                     double d = euclideanDistance(nearX, nearY, x, y);
                     double n = euclideanDistance(randX, randY, x, y);
                     double m = euclideanDistance(nearX, nearY, randX, randY); 
@@ -387,13 +355,14 @@ namespace ompl
                     double temp_angle = acos(numerator / denominator);
 
                     // TODO: Is the > 0 check necessary? --> are negative angles okay? 
-                    if ((temp_angle > 0) && (temp_angle < angle))
+                    if ((temp_angle < angle) && (info->checkMotion(qnear, neighbors[i])))
                     {
-                        info->copyState(qnew, temp);
+                        info->copyState(qnew, neighbors[i]);
                         angle = temp_angle;
+                        //info->freeState(temp);
                     }
                 }
-                info->freeState(temp);
+                //info->freeState(temp);
 
                 if (angle == std::numeric_limits<double>::infinity()){
 
@@ -476,7 +445,8 @@ namespace ompl
             //std::map<std::vector<std::pair<double, double>>, int> indegree;
 
             //std::set<std::pair<double, double>> 
-            std::set<std::pair<double, double>> localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
+            //std::set<std::pair<double, double>> 
+            bool localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
             {
                 std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> graph;
                 // First, extract each robots qnear and qnew and then add them to our graph
@@ -593,7 +563,7 @@ namespace ompl
                         remainingNodes.insert(i->first);
                     }
                 }
-                return remainingNodes;
+                return remainingNodes.empty();
             }
          
 
