@@ -609,7 +609,7 @@ namespace ompl
 
             /** \brief The fraction of time the goal is picked as the state to expand towards (if such a state is
              * available) */
-            double goalBias_{.05};
+            double goalBias_{.1};
 
             /** \brief The maximum length of a motion to be added to a tree */
             double maxDistance_{0.};
