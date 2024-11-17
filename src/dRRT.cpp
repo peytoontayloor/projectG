@@ -164,11 +164,11 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
                 //si_->freeState(tempState);
                 continue;
             }
-            if(!(si_->isValid(tempState)))
+            /*if(!(si_->isValid(tempState)))
             {
                 si_->freeState(tempState);
                 continue;
-            }
+            }*/
             si_->copyState(rstate, tempState);
             si_->freeState(tempState);
 
@@ -185,7 +185,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         if ((nbrR1.empty()) || (nbrR2.empty()) || (nbrR3.empty()) || (nbrR4.empty()))
         {
-            std::cout << "NO NEIGHBOR, PICKING NEW QRAND" << std::endl;
+            //std::cout << "NO NEIGHBOR, PICKING NEW QRAND" << std::endl;
             continue;
         }
 
@@ -248,7 +248,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         // TODO: now need to collision check/local connector! 
         
-        if ((!(localConnector(nmotion->state, qNew))) or (!(si_->checkMotion(nmotion->state, qNew))))
+        if (!(localConnector(nmotion->state, qNew))) //or (!(si_->checkMotion(nmotion->state, qNew))))
         {
             si_->freeState(qNew);
             continue;
@@ -278,7 +278,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         }
     }
 
-    //std::cout << "done with loop" << std::endl;
+    std::cout << "local connect fails: " << noConnect << std::endl;
 
     bool solved = false;
     bool approximate = false;

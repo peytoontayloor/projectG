@@ -122,6 +122,8 @@ namespace ompl
             ompl::base::SpaceInformationPtr spaceInfo3;
             ompl::base::SpaceInformationPtr spaceInfo4;
 
+            int noConnect = 0;
+
             std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> createPRMNodes(PRM::Graph roadmap){
 
                 // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
@@ -555,15 +557,19 @@ namespace ompl
 
                 // Once queue is empty, if one of our vertices is false, then there is a cycle somewhere/cannot assign priorities to the robots for valid movement
                 
-                std::set<std::pair<double, double>> remainingNodes;
+                //std::set<std::pair<double, double>> remainingNodes;
                 for (auto i = vertices.begin(); i != vertices.end(); i++)
                 {
                     if (i->second == false)
                     {
-                        remainingNodes.insert(i->first);
+                        //remainingNodes.insert(i->first);
+                        //std::cout << "no connect" << std::endl;
+                        noConnect++;
+                        return false;
                     }
                 }
-                return remainingNodes.empty();
+                //return remainingNodes.empty();
+                return true;
             }
          
 

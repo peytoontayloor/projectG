@@ -115,8 +115,11 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
     auto prmPtr = std::make_shared<og::PRM>(ss->getSpaceInformation());
     ss->setPlanner(prmPtr);
 
+    // An attempt to cut down on the neighbors we are searching through in dRRT
+    //prmPtr->setMaxNearestNeighbors(10);
+
     //solve the problem:
-    ob::PlannerStatus solved = ss->solve(10.0);
+    ob::PlannerStatus solved = ss->solve(30.0);
 
     if (solved)
     {
