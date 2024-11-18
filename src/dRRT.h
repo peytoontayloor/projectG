@@ -170,16 +170,6 @@ namespace ompl
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> resultR1 = createPRMNodes(r1RM);
                 robot1 = resultR1.first;
                 robot1mapping = resultR1.second;
-
-                // std::map<std::pair<double, double>, long signed int> ::iterator it;
-                // for (it = robot1mapping.begin(); it != robot1mapping.end(); it++)
-                // {
-                //     std::cout << "(" << it->first.first  << ", "  // x coordinate
-                //              << it->first.second  << " ) "       // y coordinate
-                //             << ':'
-                //             << it->second                         // vertex descriptor
-                //             << std::endl;
-                // }
                 
                 std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR2 = createPRMNodes(r2RM);
                 robot2 = resultR2.first;
@@ -275,16 +265,13 @@ namespace ompl
                     return getAdjacentVertices(r1RM, robot1mapping, qnear, robotId);
                 }
 
-                if (robotId == 2){
+                else if (robotId == 2){
                     return getAdjacentVertices(r2RM, robot2mapping, qnear, robotId);
                 }
 
-                if (robotId == 3){
+                else if (robotId == 3){
                     return getAdjacentVertices(r3RM, robot3mapping, qnear, robotId);
                 }
-
-                // If we are not passing parameters right, this will cause a bug
-                //else if (robotId == 4){
                 else
                 {
                     return getAdjacentVertices(r4RM, robot4mapping, qnear, robotId);
@@ -434,20 +421,12 @@ namespace ompl
                 return r1Distance + r2Distance + r3Distance + r4Distance;
             }
 
-            
-
             // TODO: keeping new 'sampler' here, not sure if this is the best practice, might move
             ompl::base::State * customCompositeSampler(ompl::base::StateSpacePtr space);
 
             // Stores mapping of nodes to a vector of nodes
             std::map<std::vector<std::pair<double, double>>, std::vector<std::vector<std::pair<double, double>>>> adjList;
 
-            // Stores mapping of nodes to their indegrees
-            // We don't want this global bc changes each time we try to add qnew 
-            //std::map<std::vector<std::pair<double, double>>, int> indegree;
-
-            //std::set<std::pair<double, double>> 
-            //std::set<std::pair<double, double>> 
             bool localConnector(ompl::base::State *cmpdnear, ompl::base::State *cmpdnew)
             {
                 std::map<std::pair<double, double>, std::vector<std::pair<double, double>>> graph;
@@ -493,7 +472,6 @@ namespace ompl
 
                 // Now that we have graph storing which nodes point to which, we need to create a map of the indegrees of each node:
                 std::map<std::pair<double, double>, int> inDegree;
-                //std::vector<std::pair<double, double>> vertices;
                 std::map<std::pair<double, double>, bool> vertices;
 
                 // Loop through our main graph and initialize every node's inDegree to 0
@@ -506,7 +484,6 @@ namespace ompl
                     //i->first is key
                     //i->second is value
                     inDegree[(i->first)] = 0;
-                    //vertices.push_back(i->first);
                     vertices[(i->first)] = false;
                 }
 
@@ -520,7 +497,6 @@ namespace ompl
                     }
                 }
 
-                //std::deque<std::pair<double, double>> queue;
                 std::vector<std::pair<double, double>> queue;
                 // Now, get our queue which should be a vector of only the vertices with indegree = 0
                 for (auto i = inDegree.begin(); i != inDegree.end(); i++)
@@ -557,18 +533,14 @@ namespace ompl
 
                 // Once queue is empty, if one of our vertices is false, then there is a cycle somewhere/cannot assign priorities to the robots for valid movement
                 
-                //std::set<std::pair<double, double>> remainingNodes;
                 for (auto i = vertices.begin(); i != vertices.end(); i++)
                 {
                     if (i->second == false)
                     {
-                        //remainingNodes.insert(i->first);
-                        //std::cout << "no connect" << std::endl;
                         noConnect++;
                         return false;
                     }
                 }
-                //return remainingNodes.empty();
                 return true;
             }
          

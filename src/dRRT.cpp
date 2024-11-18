@@ -246,7 +246,7 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         }
 
-        // TODO: now need to collision check/local connector! 
+        // Local connector
         
         if (!(localConnector(nmotion->state, qNew))) //or (!(si_->checkMotion(nmotion->state, qNew))))
         {
