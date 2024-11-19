@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import sys
 
-data = numpy.loadtxt('path.txt')
+data = numpy.loadtxt('spath_clock_.txt')
 fig, ax = plt.subplots()
 ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
 ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
@@ -16,7 +16,7 @@ ax.plot(data[:, 6],data[:, 7],'.-', color='y', label='Robot4')
 wait = True
 while wait:
         
-        envNum = input("Enter 1 (LR) to visualize path.txt: ")
+        envNum = input("Enter 1 (LR) or 2 (Clock) to visualize path.txt,: ")
         if envNum == '1':
             ax.set_xlim(1, 7)  
             ax.set_ylim(1, 9)
@@ -34,8 +34,20 @@ while wait:
 
             wait = False
             break
-        else:
-            print("Invalid input. Enter 1")
+        elif envNum == "2":
+            ax.set_xlim(0, 11)
+            ax.set_ylim(0, 11)
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_aspect('equal') 
+            print("Displaying path.txt, Clock robot")
 
-plt.savefig('pathvis4.png')
+            circle = patch.Circle((5, 5), 4, fill=False, linestyle='dashed')
+            ax.add_patch(circle)
+            wait = False
+            break
+        else:
+            print("Invalid input. Enter 1 or 2")
+
+plt.savefig('spath_clock_.png')
 plt.show()

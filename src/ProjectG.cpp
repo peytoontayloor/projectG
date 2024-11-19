@@ -86,6 +86,42 @@ og::SimpleSetupPtr createRobot(double goalX, double goalY, double startX, double
 
 }
 
+
+// Takes in no arguments as of now, but can modify this later
+// Goal is to have this function set up one robot in our environment
+og::SimpleSetupPtr createClockRobot(double goalX, double goalY, double startX, double startY, const std::vector<Rectangle> &obstacles)
+{
+    auto r2(std::make_shared<ob::RealVectorStateSpace>(2));
+
+    ob::RealVectorBounds r2_bounds(2);
+    r2_bounds.setLow(0, 0);
+    r2_bounds.setHigh(0, 11);
+    r2_bounds.setLow(1, 0);
+    r2_bounds.setHigh(1, 11);
+    r2->setBounds(r2_bounds);
+
+    og::SimpleSetupPtr ss = std::make_shared<og::SimpleSetup>(r2);
+    ob::SpaceInformationPtr si = ss->getSpaceInformation();
+    
+    ss->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1, obstacles));
+
+    ob::ScopedState<> start(r2);
+    start[0] = startX;
+    start[1] = startY;
+
+    ob::ScopedState<> goal(r2);
+    goal[0] = goalX;
+    goal[1] = goalY;
+
+    // No goal radius for now
+    ss->setStartAndGoalStates(start, goal);
+
+    ss->setup();
+
+    return ss;
+
+}
+
 std::vector<ompl::base::State *> createPRMNodes(og::PRM::Graph roadmap){
 
     // Maps vertices to state - name of property is og::PRM::vertex_state_t() 
@@ -148,15 +184,6 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
             r4RM = prmPtr->getRoadmap();
             r4RM_nodes = createPRMNodes(r4RM);
         }
-
-        // Below creates a plannerData object and stores our full roadmap to it
-        // The graphViz is a way to print visualization but isn't in matrix format, want to figure out how to get this so we can better visualize the individual roadmaps
-        // TODO: asked for help with ^^^ on piazza, waiting for response :)
-        //ob::PlannerData roadMap(ss->getSpaceInformation());
-        //ss->getPlannerData(roadMap);
-        //roadMap.printGraphviz(std::cout);
-
-
     }
     else
     {
@@ -164,7 +191,38 @@ void planRobot(og::SimpleSetupPtr & ss, const char* robotID)
     }
 
     // TODO: might need to clear the planner? 
+}
 
+
+void planClockRobots(std::vector<og::SimpleSetupPtr> & ssVector, std::vector<og::PRM::Graph> & roadmaps)
+{
+    for (size_t i = 0; i < ssVector.size(); ++i)
+    {
+        auto prmPtr = std::make_shared<og::PRM>(ssVector[i]->getSpaceInformation());
+        ssVector[i]->setPlanner(prmPtr);
+
+        ob::PlannerStatus solved = ssVector[i]->solve(30.0);
+
+        if (solved)
+        {
+            std::cout << "Found Solution:" << std::endl;
+
+            auto path = ssVector[i]->getSolutionPath();
+            path.printAsMatrix(std::cout);
+            og::PRM::Graph rm = prmPtr->getRoadmap();
+            roadmaps.push_back(rm);
+        }
+        else
+        {
+            std::cout << "No Solution Found" << std::endl;
+        }
+    }
+    // An attempt to cut down on the neighbors we are searching through in dRRT
+    //prmPtr->setMaxNearestNeighbors(10);
+
+    //solve the problem:
+
+    // TODO: might need to clear the planner? 
 }
 
 
@@ -344,128 +402,309 @@ double r3SX, double r3SY, double r3GX, double r3GY, double r4SX, double r4SY, do
     }
 }
 
+
 int main(int, char **)
 {
-    std::vector<Rectangle> obstacles;
-    createLREnvironment(obstacles);
-    
-    // Creating the varius robot start and goal states: 
-    // Right now, doing the left/right swap from example, since just PRM right now, pretty simple solutions
-
-    double r1SX = 2.0;
-    double r1SY = 8.0;
-    double r1GX = 6.0;
-    double r1GY = 8.0;
-
-    double r2SX = 6.0;
-    double r2SY = 8.0;
-    double r2GX = 2.0;
-    double r2GY = 8.0;
-
-    double r3SX = 2.0;
-    double r3SY = 2.0;
-    double r3GX = 6.0;
-    double r3GY = 2.0;
-
-    double r4SX = 6.0;
-    double r4SY = 2.0;
-    double r4GX = 2.0;
-    double r4GY = 2.0;
-
-    og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
-    og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
-    og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
-    og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
-
-    planRobot(r1, "Robot 1");
-    planRobot(r2, "Robot 2");
-    planRobot(r3, "Robot 3");
-    planRobot(r4, "Robot 4");
-
-    // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
-    // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
-
-    // Creates and solve a composite TENSOR roadmap of the 4 robots (naive approach)
-    // compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
-
-    // Now, we want to plan with our implicit search dRRT, using our individual PRM roadmaps (not doing tensor product)
-
-    // Make a compound state space with the spaces of our 4 robot PRMS:
-    auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
-    
-    // Initialize a simple setup pointer:
-    og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
-
-    // Since we have our start and goal states, set these:
-    ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
-    start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
-    start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
-
-    start->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2SX;
-    start->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2SY;
-
-    start->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3SX;
-    start->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3SY;
-
-    start->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4SX;
-    start->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4SY;
-
-    ob::ScopedState<ob::CompoundStateSpace> goal(compound->getSpaceInformation());
-    goal->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1GX;
-    goal->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1GY;
-
-    goal->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2GX;
-    goal->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2GY;
-
-    goal->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3GX;
-    goal->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3GY;
-
-    goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
-    goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
-
-    compound->setStartAndGoalStates(start, goal);
-
-    // Retrieving space information pointer from simple setup
-    ob::SpaceInformationPtr si = compound->getSpaceInformation();
-
-    // TODO: uncomment or comment it out to show the different behaviors with obstacles and without obstacles
-    compound->setStateValidityChecker(
-         [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
-    );
-
-    // Set our planner as dRRT
-    auto planner = std::make_shared<og::dRRT>(si);
-    
-    // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
-    std::vector<og::PRM::Graph> roadmaps = {r1RM, r2RM, r3RM, r4RM};
-    std::vector<og::SimpleSetupPtr> ssPtrs = {r1, r2, r3, r4};
-    planner->setRobotPRMs(roadmaps);
-    planner->setRobotNodes();
-    planner->setIndivSpaceInfo(ssPtrs);
-    // planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
-
-    // ADDED planner and set robot nodes --> works now
-    compound->setPlanner(planner);
-
-    compound->setup();
-
-
-    // Solve with dRRT (obviously not working yet)
-    ob::PlannerStatus solved = compound->solve(20);
-
-    std::ofstream solution("solution_path.txt");
-
-    if (solved)
+    int choice;
+    do
     {
-        std::cout << "Found Solution:" << std::endl;
+        std::cout << "LR or Clock? " << std::endl;
+        std::cout << " (1) LR" << std::endl;
+        std::cout << " (2) Clock" << std::endl;
 
-        auto path = compound->getSolutionPath();
-        path.printAsMatrix(std::cout);
+        std::cin >> choice;
+    } while (choice < 1 || choice > 2);
+
+    if (choice == 1)
+    {
+        std::vector<Rectangle> obstacles;
+        createLREnvironment(obstacles);
         
-        path.printAsMatrix(solution);
-    }
-    else{
-        std::cout << "No Solution Found" << std::endl;
-    }
+        // Creating the varius robot start and goal states: 
+        // Right now, doing the left/right swap from example, since just PRM right now, pretty simple solutions
 
+        double r1SX = 2.0;
+        double r1SY = 8.0;
+        double r1GX = 6.0;
+        double r1GY = 8.0;
+
+        double r2SX = 6.0;
+        double r2SY = 8.0;
+        double r2GX = 2.0;
+        double r2GY = 8.0;
+
+        double r3SX = 2.0;
+        double r3SY = 2.0;
+        double r3GX = 6.0;
+        double r3GY = 2.0;
+
+        double r4SX = 6.0;
+        double r4SY = 2.0;
+        double r4GX = 2.0;
+        double r4GY = 2.0;
+
+        og::SimpleSetupPtr r1 = createRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
+        og::SimpleSetupPtr r2 = createRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
+        og::SimpleSetupPtr r3 = createRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
+        og::SimpleSetupPtr r4 = createRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
+
+        planRobot(r1, "Robot 1");
+        planRobot(r2, "Robot 2");
+        planRobot(r3, "Robot 3");
+        planRobot(r4, "Robot 4");
+
+        // Having composite RM return a vector of vectors of states so that we can sample from those in dRRT
+        // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
+
+        // Creates and solve a composite TENSOR roadmap of the 4 robots (naive approach)
+        // compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
+
+        // Now, we want to plan with our implicit search dRRT, using our individual PRM roadmaps (not doing tensor product)
+
+        // Make a compound state space with the spaces of our 4 robot PRMS:
+        auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace();
+        
+        // Initialize a simple setup pointer:
+        og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
+
+        // Since we have our start and goal states, set these:
+        ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
+        start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
+        start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2SX;
+        start->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3SX;
+        start->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4SX;
+        start->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4SY;
+
+        ob::ScopedState<ob::CompoundStateSpace> goal(compound->getSpaceInformation());
+        goal->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
+
+        compound->setStartAndGoalStates(start, goal);
+
+        // Retrieving space information pointer from simple setup
+        ob::SpaceInformationPtr si = compound->getSpaceInformation();
+
+        // TODO: uncomment or comment it out to show the different behaviors with obstacles and without obstacles
+        compound->setStateValidityChecker(
+            [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
+        );
+
+        // Set our planner as dRRT
+        auto planner = std::make_shared<og::dRRT>(si);
+        
+        // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
+        std::vector<og::PRM::Graph> roadmaps = {r1RM, r2RM, r3RM, r4RM};
+        std::vector<og::SimpleSetupPtr> ssPtrs = {r1, r2, r3, r4};
+        planner->setRobotPRMs(roadmaps);
+        planner->setRobotNodes();
+        planner->setIndivSpaceInfo(ssPtrs);
+        // planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
+
+        // ADDED planner and set robot nodes --> works now
+        compound->setPlanner(planner);
+
+        compound->setup();
+
+
+        // Solve with dRRT (obviously not working yet)
+        ob::PlannerStatus solved = compound->solve(20);
+
+        std::ofstream solution("solution_path.txt");
+
+        if (solved)
+        {
+            std::cout << "Found Solution:" << std::endl;
+
+            auto path = compound->getSolutionPath();
+            path.printAsMatrix(std::cout);
+            
+            path.printAsMatrix(solution);
+        }
+        else{
+            std::cout << "No Solution Found" << std::endl;
+        }
+
+
+    }
+    else if (choice == 2)
+    {
+        // Open space environment, no obstacles
+        // TODO: will this create a segmentation fault?
+        std::vector<Rectangle> obstacles;
+        
+        // Creating the varius robot start and goal states: 
+        // Now doing the clock environment with robots standing in a circle of radius 4  
+
+        double r1SX = 5.0;
+        double r1SY = 9.0;
+        double r1GX = 5.0;
+        double r1GY = 1.0;
+
+        double r2SX = 7.83;
+        double r2SY = 7.83;
+        double r2GX = 2.17;
+        double r2GY = 2.17;
+
+        double r3SX = 9.0;
+        double r3SY = 5.0;
+        double r3GX = 1.0;
+        double r3GY = 5.0;
+
+        double r4SX = 7.83;
+        double r4SY = 2.17;
+        double r4GX = 2.17;
+        double r4GY = 7.83;
+
+        double r5SX = 5.0;
+        double r5SY = 1.0;
+        double r5GX = 5.0;
+        double r5GY = 9.0;
+
+        double r6SX = 2.17;
+        double r6SY = 2.17;
+        double r6GX = 7.83;
+        double r6GY = 7.83;
+
+        double r7SX = 1.0;
+        double r7SY = 5.0;
+        double r7GX = 9.0;
+        double r7GY = 5.0;
+
+        double r8SX = 2.17;
+        double r8SY = 7.83;
+        double r8GX = 7.83;
+        double r8GY = 2.17;
+
+        og::SimpleSetupPtr r1 = createClockRobot(r1GX, r1GY, r1SX, r1SY, obstacles);
+        og::SimpleSetupPtr r2 = createClockRobot(r2GX, r2GY, r2SX, r2SY, obstacles);
+        og::SimpleSetupPtr r3 = createClockRobot(r3GX, r3GY, r3SX, r3SY, obstacles);
+        og::SimpleSetupPtr r4 = createClockRobot(r4GX, r4GY, r4SX, r4SY, obstacles);
+
+        og::SimpleSetupPtr r5 = createClockRobot(r5GX, r5GY, r5SX, r5SY, obstacles);
+        og::SimpleSetupPtr r6 = createClockRobot(r6GX, r6GY, r6SX, r6SY, obstacles);
+        og::SimpleSetupPtr r7 = createClockRobot(r7GX, r7GY, r7SX, r7SY, obstacles);
+        og::SimpleSetupPtr r8 = createClockRobot(r8GX, r8GY, r8SX, r8SY, obstacles);
+
+        std::vector<og::SimpleSetupPtr> ssPtrsClock = {r1, r2, r3, r4, r5, r6, r7, r8};
+        std::vector<og::PRM::Graph> roadmaps;
+        planClockRobots(ssPtrsClock, roadmaps);
+
+        // Now, we want to plan with our implicit search dRRT, using our individual PRM roadmaps (not doing tensor product)
+
+        // Make a compound state space with the spaces of our 4 robot PRMS:
+        auto stateSpace = r1->getStateSpace() + r2->getStateSpace() + r3->getStateSpace() + r4->getStateSpace() + r5->getStateSpace() + r6->getStateSpace() + r7->getStateSpace() + r8->getStateSpace();
+        
+        // Initialize a simple setup pointer:
+        og::SimpleSetupPtr compound = std::make_shared<og::SimpleSetup>(stateSpace);
+
+        // Since we have our start and goal states, set these:
+        ob::ScopedState<ob::CompoundStateSpace> start(compound->getSpaceInformation());
+        start->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1SX;
+        start->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2SX;
+        start->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3SX;
+        start->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4SX;
+        start->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(4)->values[0] = r5SX;
+        start->as<ob::RealVectorStateSpace::StateType>(4)->values[1] = r5SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(5)->values[0] = r6SX;
+        start->as<ob::RealVectorStateSpace::StateType>(5)->values[1] = r6SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(6)->values[0] = r7SX;
+        start->as<ob::RealVectorStateSpace::StateType>(6)->values[1] = r7SY;
+
+        start->as<ob::RealVectorStateSpace::StateType>(7)->values[0] = r8SX;
+        start->as<ob::RealVectorStateSpace::StateType>(7)->values[1] = r8SY;
+
+        ob::ScopedState<ob::CompoundStateSpace> goal(compound->getSpaceInformation());
+        goal->as<ob::RealVectorStateSpace::StateType>(0)->values[0] = r1GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(0)->values[1] = r1GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(1)->values[0] = r2GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(1)->values[1] = r2GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(2)->values[0] = r3GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(2)->values[1] = r3GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(3)->values[0] = r4GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(3)->values[1] = r4GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(4)->values[0] = r5GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(4)->values[1] = r5GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(5)->values[0] = r6GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(5)->values[1] = r6GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(6)->values[0] = r7GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(6)->values[1] = r7GY;
+
+        goal->as<ob::RealVectorStateSpace::StateType>(7)->values[0] = r8GX;
+        goal->as<ob::RealVectorStateSpace::StateType>(7)->values[1] = r8GY;
+
+        compound->setStartAndGoalStates(start, goal);
+
+        // Retrieving space information pointer from simple setup
+        ob::SpaceInformationPtr si = compound->getSpaceInformation();
+
+        // TODO: uncomment or comment it out to show the different behaviors with obstacles and without obstacles
+        compound->setStateValidityChecker(
+            [si, &obstacles](const ob::State* state) { return isStateValid(si, state, obstacles); }
+        );
+
+        // Set our planner as dRRT
+        auto planner = std::make_shared<og::dRRT>(si);
+        
+        // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
+        planner->setRobotPRMs(roadmaps);
+        planner->setRobotNodes();
+        planner->setIndivSpaceInfo(ssPtrsClock);
+
+        // ADDED planner and set robot nodes --> works now
+        compound->setPlanner(planner);
+
+        compound->setup();
+
+
+        // Solve with dRRT (obviously not working yet)
+        ob::PlannerStatus solved = compound->solve(20);
+
+        std::ofstream solution("solution_path.txt");
+
+        if (solved)
+        {
+            std::cout << "Found Solution:" << std::endl;
+
+            auto path = compound->getSolutionPath();
+            path.printAsMatrix(std::cout);
+            
+            path.printAsMatrix(solution);
+        }
+        else{
+            std::cout << "No Solution Found" << std::endl;
+        }
+
+    }
+    
 }
