@@ -6,22 +6,22 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import sys
 
-data = numpy.loadtxt('spath_clock_3.txt')
+data = numpy.loadtxt('spath_clock_.txt')
 fig, ax = plt.subplots()
-# ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
-# ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
-# ax.plot(data[:, 4],data[:, 5],'.-', color='r', label='Robot3')
-# ax.plot(data[:, 6],data[:, 7],'.-', color='y', label='Robot4')
+ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
+ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
+ax.plot(data[:, 4],data[:, 5],'.-', color='r', label='Robot3')
+ax.plot(data[:, 6],data[:, 7],'.-', color='y', label='Robot4')
 
-ax.plot(data[:, 8],data[:, 9],'.-', color='b', label='Robot5')
-ax.plot(data[:, 10],data[:, 11],'.-', color='g', label='Robot6')
-ax.plot(data[:, 12],data[:, 13],'.-', color='r', label='Robot7')
-ax.plot(data[:, 14],data[:, 15],'.-', color='y', label='Robot8')
+# ax.plot(data[:, 8],data[:, 9],'.-', color='b', label='Robot5')
+# ax.plot(data[:, 10],data[:, 11],'.-', color='g', label='Robot6')
+# ax.plot(data[:, 12],data[:, 13],'.-', color='r', label='Robot7')
+# ax.plot(data[:, 14],data[:, 15],'.-', color='y', label='Robot8')
 
-# ax.plot(data[:, 8],data[:, 9],'.-', color='orange', label='Robot5')
-# ax.plot(data[:, 10],data[:, 11],'.-', color='brown', label='Robot6')
-# ax.plot(data[:, 12],data[:, 13],'.-', color='black', label='Robot7')
-# ax.plot(data[:, 14],data[:, 15],'.-', color='m', label='Robot8')
+ax.plot(data[:, 8],data[:, 9],'.-', color='orange', label='Robot5')
+ax.plot(data[:, 10],data[:, 11],'.-', color='brown', label='Robot6')
+ax.plot(data[:, 12],data[:, 13],'.-', color='black', label='Robot7')
+ax.plot(data[:, 14],data[:, 15],'.-', color='m', label='Robot8')
 
 wait = True
 while wait:
@@ -59,5 +59,5 @@ while wait:
         else:
             print("Invalid input. Enter 1 or 2")
 
-plt.savefig('spath_clock_3_lastfour.png')
+plt.savefig('spath_clock_.png')
 plt.show()
