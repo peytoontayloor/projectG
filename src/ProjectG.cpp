@@ -437,9 +437,11 @@ int main(int, char **)
     auto planner = std::make_shared<og::dRRT>(si);
     
     // Trying to set the members holding vector of states for each robot by accessing our planner (dRRT) and calling setRobotNodes
-    planner->setRobotPRMs(r1RM, r2RM, r3RM, r4RM);
+    std::vector<og::PRM::Graph> roadmaps = {r1RM, r2RM, r3RM, r4RM};
+    std::vector<og::SimpleSetupPtr> ssPtrs = {r1, r2, r3, r4};
+    planner->setRobotPRMs(roadmaps);
     planner->setRobotNodes();
-    planner->setIndivSpaceInfo(r1, r2, r3, r4);
+    planner->setIndivSpaceInfo(ssPtrs);
     // planner->setRobotNodes(r1RM_nodes, r2RM_nodes, r3RM_nodes, r4RM_nodes);
 
     // ADDED planner and set robot nodes --> works now

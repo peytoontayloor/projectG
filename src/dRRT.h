@@ -93,34 +93,19 @@ namespace ompl
 
             void setup() override;
 
-            PRM::Graph r1RM;
-            PRM::Graph r2RM;
-            PRM::Graph r3RM;
-            PRM::Graph r4RM;
+            std::vector<PRM::Graph> roadmaps;
 
-            void setRobotPRMs(PRM::Graph r1RM_param, PRM::Graph r2RM_param, PRM::Graph r3RM_param, PRM::Graph r4RM_param)
+            void setRobotPRMs(std::vector<PRM::Graph> roadmaps_param)
             {
-                r1RM = r1RM_param;
-                r2RM = r2RM_param;
-                r3RM = r3RM_param;
-                r4RM = r4RM_param;
+                roadmaps = roadmaps_param;
 
             }
 
-            std::vector<ompl::base::State *> robot1;
-            std::vector<ompl::base::State *> robot2;
-            std::vector<ompl::base::State *> robot3;
-            std::vector<ompl::base::State *> robot4;
+            std::vector<std::vector<ompl::base::State *>> robotNodes;
 
-            std::map<std::pair<double, double>, long signed int> robot1mapping;
-            std::map<std::pair<double, double>, long signed int> robot2mapping;
-            std::map<std::pair<double, double>, long signed int> robot3mapping;
-            std::map<std::pair<double, double>, long signed int> robot4mapping;
+            std::vector<std::map<std::pair<double, double>, long signed int>> robotmappings;
 
-            ompl::base::SpaceInformationPtr spaceInfo1;
-            ompl::base::SpaceInformationPtr spaceInfo2;
-            ompl::base::SpaceInformationPtr spaceInfo3;
-            ompl::base::SpaceInformationPtr spaceInfo4;
+            std::vector<ompl::base::SpaceInformationPtr> spaceInfos;
 
             int noConnect = 0;
 
@@ -167,56 +152,28 @@ namespace ompl
 
             void setRobotNodes()
             {
-                std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> resultR1 = createPRMNodes(r1RM);
-                robot1 = resultR1.first;
-                robot1mapping = resultR1.second;
-                
-                std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR2 = createPRMNodes(r2RM);
-                robot2 = resultR2.first;
-                robot2mapping = resultR2.second;
-                
-                std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR3 = createPRMNodes(r3RM);
-                robot3 = resultR3.first;
-                robot3mapping = resultR3.second;
-
-                std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>>  resultR4 = createPRMNodes(r4RM);
-                robot4 = resultR4.first;
-                robot4mapping = resultR4.second;
+                for (size_t i = 0; i < roadmaps.size(); ++i)
+                {
+                    std::pair<std::vector<ompl::base::State *>, std::map<std::pair<double, double>, long signed int>> result = createPRMNodes(roadmaps[i]);
+                    robotNodes.push_back(result.first);
+                    robotmappings.push_back(result.second);
+                }
             }
 
-            void setIndivSpaceInfo(ompl::geometric::SimpleSetupPtr si1, ompl::geometric::SimpleSetupPtr si2, ompl::geometric::SimpleSetupPtr si3, ompl::geometric::SimpleSetupPtr si4)
+            void setIndivSpaceInfo(std::vector<ompl::geometric::SimpleSetupPtr> ssPtrs)
             {
-                spaceInfo1 = si1->getSpaceInformation();
-                spaceInfo2 = si2->getSpaceInformation();
-                spaceInfo3 = si3->getSpaceInformation();
-                spaceInfo4 = si4->getSpaceInformation();
+                for (size_t i = 0; i < ssPtrs.size(); ++i)
+                {
+                    spaceInfos.push_back(ssPtrs[i]->getSpaceInformation());
+                }
             }
 
 
             std::vector<ompl::base::State *> getAdjacentVertices(PRM::Graph roadmap, std::map<std::pair<double, double>, long signed int> mapping, ompl::base::State * qnear, int robotId){
 
-                double x_near = 0.0;
-                double y_near = 0.0;
                 ompl::base::CompoundState * qnearCompoundState = qnear->as<ompl::base::CompoundState>();
-                if (robotId == 1)
-                {
-                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[0];
-                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(0)->values[1];
-                }
-                if (robotId == 2)
-                {
-                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[0];
-                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(1)->values[1];
-                }
-                if (robotId == 3)
-                {
-                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[0];
-                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(2)->values[1];   
-                }
-                if (robotId == 4){
-                    x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[0];
-                    y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(3)->values[1];
-                }
+                double x_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(robotId)->values[0];
+                double y_near = qnearCompoundState->as<ompl::base::RealVectorStateSpace::StateType>(robotId)->values[1];
                 
                 std::pair<double, double> coord_near (x_near, y_near);
 
@@ -259,23 +216,15 @@ namespace ompl
 
             }
 
-            std::vector<ompl::base::State *> neighbors(ompl::base::State * qnear, int robotId){
+            std::vector<std::vector<ompl::base::State *>> neighbors(ompl::base::State * qnear){
 
-                if (robotId == 1){
-                    return getAdjacentVertices(r1RM, robot1mapping, qnear, robotId);
-                }
-
-                else if (robotId == 2){
-                    return getAdjacentVertices(r2RM, robot2mapping, qnear, robotId);
-                }
-
-                else if (robotId == 3){
-                    return getAdjacentVertices(r3RM, robot3mapping, qnear, robotId);
-                }
-                else
+                std::vector<std::vector<ompl::base::State *>> res;
+                for (size_t i = 0; i < roadmaps.size(); ++i)
                 {
-                    return getAdjacentVertices(r4RM, robot4mapping, qnear, robotId);
+                    res.push_back(getAdjacentVertices(roadmaps[i], robotmappings[i], qnear, i));
                 }
+                
+                return res;
 
             }
 
@@ -290,28 +239,8 @@ namespace ompl
                 // This will return a state, qnew, such that angle is minimized (following algorithm provided in paper)
 
                 // Assigned ot nullptr to fix comiler warnings, shouldn't ever not hit one of the conditions
-                ompl::base::State* nearState = nullptr;
-                ompl::base::State* randState = nullptr;
-                if (rNum == 1)
-                {
-                    nearState = qnear->as<ompl::base::CompoundState>()->components[0];
-                    randState = qrand->as<ompl::base::CompoundState>()->components[0];
-                }
-                if (rNum == 2)
-                {
-                    nearState = qnear->as<ompl::base::CompoundState>()->components[1];
-                    randState = qrand->as<ompl::base::CompoundState>()->components[1];
-                }
-                if (rNum == 3)
-                {
-                    nearState = qnear->as<ompl::base::CompoundState>()->components[2];
-                    randState = qrand->as<ompl::base::CompoundState>()->components[2];
-                }
-                if (rNum == 4)
-                {
-                    nearState = qnear->as<ompl::base::CompoundState>()->components[3];
-                    randState = qrand->as<ompl::base::CompoundState>()->components[3];
-                }
+                ompl::base::State* nearState = qnear->as<ompl::base::CompoundState>()->components[rNum];
+                ompl::base::State* randState = qrand->as<ompl::base::CompoundState>()->components[rNum];
 
                 double nearX = nearState->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                 double nearY = nearState->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];

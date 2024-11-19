@@ -70,20 +70,21 @@ void ompl::geometric::dRRT::freeMemory()
 ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::StateSpacePtr space)
 {
     // TODO: if one roadmap is empty, we will have issues here (assuming this won't happen?)
-    // Sample a random state from each vector uniformly
 
-    int i1 = rng_.uniformInt(0, robot1.size() - 1);
-    int i2 = rng_.uniformInt(0, robot2.size() - 1);
-    int i3 = rng_.uniformInt(0, robot3.size() - 1);
-    int i4 = rng_.uniformInt(0, robot4.size() - 1);
+    std::vector<ompl::base::State *> compoundStates;
+    for (size_t i = 0; i < roadmaps.size(); ++i)
+    {
+        // Sample a random state from each vector uniformly
+        int rgIndex = rng_.uniformInt(0, robotNodes[i].size() - 1);
 
-    // Create a state pointer to hold each of the randomly sampled states
-    ompl::base::State* r1State = robot1[i1];
-    ompl::base::State* r2State = robot2[i2];
-    ompl::base::State* r3State = robot3[i3];
-    ompl::base::State* r4State = robot4[i4];
+        // Create a state pointer to hold each of the randomly sampled states
+        ompl::base::State * riState = robotNodes[i][rgIndex];
 
-    // DO NOT need epxlored check here - fine if qrand seen before!
+        // Add to list of compound states
+        compoundStates.push_back(riState);
+    }
+
+    // DO NOT need explored check here - fine if qrand seen before!
                 
     // Casting as a compound state to add r1, r2, r3, and r4 to it
     ompl::base::CompoundStateSpace * compound = space->as<ompl::base::CompoundStateSpace>();
@@ -95,11 +96,11 @@ ompl::base::State * ompl::geometric::dRRT::customCompositeSampler(ompl::base::St
     ompl::base::CompoundState* cmp = returnState->as<ompl::base::CompoundState>();
 
     // Looking at OMPL documentation, I think we can use "components" to acess each substate --> yes
-    // Can now set each subspace/state in our compound state to r1->r4
-    compound->getSubspace(0)->copyState(cmp->components[0], r1State);
-    compound->getSubspace(1)->copyState(cmp->components[1], r2State);
-    compound->getSubspace(2)->copyState(cmp->components[2], r3State);
-    compound->getSubspace(3)->copyState(cmp->components[3], r4State);
+    // Can now set each subspace/state in our compound state to r1->r4 or r1 -> r8 or r1->ri
+    for (size_t i = 0; i < roadmaps.size(); ++i)
+    {
+        compound->getSubspace(i)->copyState(cmp->components[i], compoundStates[i]);
+    }
 
     return returnState;
 
@@ -178,12 +179,23 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
 
         // nmotion->state is our qnear! 
 
-        std::vector<ompl::base::State *> nbrR1 = neighbors(nmotion->state, 1);
-        std::vector<ompl::base::State *> nbrR2 = neighbors(nmotion->state, 2);
-        std::vector<ompl::base::State *> nbrR3 = neighbors(nmotion->state, 3);
-        std::vector<ompl::base::State *> nbrR4 = neighbors(nmotion->state, 4);
+        std::vector<std::vector<ompl::base::State *>> nbrs = neighbors(nmotion->state);
 
-        if ((nbrR1.empty()) || (nbrR2.empty()) || (nbrR3.empty()) || (nbrR4.empty()))
+        std::vector<ompl::base::State *> nbrR1 = nbrs[0];
+        std::vector<ompl::base::State *> nbrR2 = nbrs[1];
+        std::vector<ompl::base::State *> nbrR3 = nbrs[2];
+        std::vector<ompl::base::State *> nbrR4 = nbrs[3];
+
+        bool throwAway = false;
+        for (size_t i = 0; i < nbrs.size(); ++i){
+            if (nbrs[i].empty())
+            {
+                throwAway = true;
+                break;
+            }
+        }
+
+        if (throwAway)
         {
             //std::cout << "NO NEIGHBOR, PICKING NEW QRAND" << std::endl;
             continue;
@@ -192,10 +204,11 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // Now, need a qnew from each robots graph according to each robots qnear:
         // Extract individual state for each robot from qnear AND rstate
         // Need to pass each robot's individual state information pointers in, not the main compound one
-        ompl::base::State* qNew1 = oracle(nmotion->state, rstate, nbrR1, 1, spaceInfo1);
-        ompl::base::State* qNew2 = oracle(nmotion->state, rstate, nbrR2, 2, spaceInfo2);
-        ompl::base::State* qNew3 = oracle(nmotion->state, rstate, nbrR3, 3, spaceInfo3);
-        ompl::base::State* qNew4 = oracle(nmotion->state, rstate, nbrR4, 4, spaceInfo4);
+        std::vector<ompl::base::State *> qNews;
+        for (size_t i = 0; i < nbrs.size(); ++i)
+        {
+            qNews.push_back(oracle(nmotion->state, rstate, nbrs[i], i, spaceInfos[i]));
+        }
 
         // For debugging seg faults
         // std::cout << "Line 277" << std::endl;
@@ -208,41 +221,37 @@ ompl::base::PlannerStatus ompl::geometric::dRRT::solve(const base::PlannerTermin
         // std::cout << "Line 286" << std::endl;
 
         // UPDATE: getting segault bc qnew1, qnew2, and qnew3 are null pointers (means oracle function is behind this)
-        if((qNew1 == nullptr) || (qNew2 == nullptr) || (qNew3 == nullptr) || (qNew4 == nullptr))
+        bool isQNewNull = false;
+        for (size_t i = 0; i < qNews.size(); ++i)
+        {
+            if (qNews[i] == nullptr)
+            {
+                isQNewNull = true;
+                break;
+            }
+        }
+
+        if(isQNewNull)
         {
             // Pick qRand as qNew
             si_->copyState(qNew, rstate);
 
-            if(qNew1 != nullptr)
+            for (size_t i = 0; i < qNews.size(); ++i)
             {
-                spaceInfo1->freeState(qNew1);
-            }
-            if(qNew2 != nullptr)
-            {
-                spaceInfo2->freeState(qNew2);
-            }
-            if(qNew3 != nullptr)
-            {
-                spaceInfo3->freeState(qNew3);
-            }
-            if(qNew4 != nullptr)
-            {
-                spaceInfo4->freeState(qNew4);
+                if (qNews[i] != nullptr)
+                {
+                    spaceInfos[i]->freeState(qNews[i]);
+                }
             }
 
         }
-
         else
         {
-            compound->getSubspace(0)->copyState(qNewCompound->components[0], qNew1);
-            compound->getSubspace(1)->copyState(qNewCompound->components[1], qNew2);
-            compound->getSubspace(2)->copyState(qNewCompound->components[2], qNew3);
-            compound->getSubspace(3)->copyState(qNewCompound->components[3], qNew4);
-
-            spaceInfo1->freeState(qNew1);
-            spaceInfo2->freeState(qNew2);
-            spaceInfo3->freeState(qNew3);
-            spaceInfo4->freeState(qNew4);
+            for (size_t i = 0; i < qNews.size(); ++i)
+            {
+                compound->getSubspace(i)->copyState(qNewCompound->components[i], qNews[i]);
+                spaceInfos[i]->freeState(qNews[i]);
+            }
 
         }
 
