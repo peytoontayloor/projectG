@@ -130,8 +130,6 @@ namespace ompl
 
                     // TODO: potentially reconsider pushing a pointer to a state, it works but is not good practice
                     states.push_back(state);
-                    
-                    // std::cout << "v*: " << *v << std::endl;
 
                     // Create tuple of coordinates to use as key in mapping (instead of pointer to state)
                     double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
@@ -140,8 +138,6 @@ namespace ompl
 
                     map[coord] = *v;
 
-                    // std::cout << "x: " << x << std::endl;
-                    // std::cout << "y: " << y << "\n" << std::endl;
                 }
 
                 // Make tuple of vector of states and mapping to return
@@ -177,9 +173,6 @@ namespace ompl
                 
                 std::pair<double, double> coord_near (x_near, y_near);
 
-                // std::cout << "x: " << x_near << std::endl;
-                // std::cout << "y: " << y_near << "\n" << std::endl;
-
                 auto pos = mapping.find(coord_near);
                 if (pos == mapping.end()){
                     std::cout << "did not find" << "\n" << std::endl;
@@ -195,22 +188,10 @@ namespace ompl
                     PRM::Graph::adjacency_iterator ai, a_end; 
                     std::vector<ompl::base::State *> states;
 
-                    // std::cout << "---------" << std::endl;
-                    // std::cout << "neighbors of " << std::endl;
-                    // std::cout << v << std::endl;
-                    // std::cout << "---------" << std::endl;
-
                     for (boost::tie(ai, a_end) = boost::adjacent_vertices(v, roadmap); ai != a_end; ai++) { 
                         ompl::base::State *state = boost::get(stateMap, *ai);
                         states.push_back(state);
-
-                        //double x = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
-                        //double y = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                        // std::cout << "x: " << x << std::endl;
-                        // std::cout << "y: " << y << "\n" << std::endl;
                     }
-                    // std::cout << "---------" << "\n" << std::endl;
                     return states;
                 }
 
@@ -255,7 +236,6 @@ namespace ompl
                 
                 //ompl::base::State* temp = info->allocState();
                 for (size_t i = 1; i < neighbors.size(); i++){
-                    //info->copyState(temp, neighbors[i]);
                     
                     double x = neighbors[i]->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double y = neighbors[i]->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
@@ -265,22 +245,20 @@ namespace ompl
                     double numerator = d * d + m * m - n * n;
                     double denominator = 2 * d * m;
 
-                    // TODO: make sure in valid range!
+                    // make sure in valid range!
                     if (denominator == 0)
                     {
                         continue;
                     }
                     double temp_angle = acos(numerator / denominator);
 
-                    // TODO: Is the > 0 check necessary? --> are negative angles okay? 
+                    // Is the > 0 check necessary? --> are negative angles okay? 
                     if ((temp_angle < angle) && (info->checkMotion(qnear, neighbors[i])))
                     {
                         info->copyState(qnew, neighbors[i]);
                         angle = temp_angle;
-                        //info->freeState(temp);
                     }
                 }
-                //info->freeState(temp);
 
                 if (angle == std::numeric_limits<double>::infinity()){
 
@@ -300,9 +278,6 @@ namespace ompl
                 return false;
             }
 
-            // std::vector<ompl::base::State *> nearestN(ompl::base::State* qnear);
-
-            // ompl::base::State* smallestDist(ompl::base::State* source, std::vector<ompl::base::State *> robotStates);
 
             double customDistanceFunction(ompl::base::State * a, ompl::base::State * b){
 
@@ -362,11 +337,10 @@ namespace ompl
                 // First, extract each robots qnear and qnew and then add them to our graph
                 // For 4 robots, a start and goal point each, we have 8 keys to add to the map
 
-                // TODO: might need to free states after each loop? But would that free the state completely or just from this assignment?
+                // might need to free states after each loop? But would that free the state completely or just from this assignment?
 
                 ompl::base::State *qnear;
                 ompl::base::State *qnew;
-                //std::cout << "NEW LOCAL CHECK:" << std::endl;
                 for(int i = 0; i < 4; i++)
                 {
                     qnear = cmpdnear->as<ompl::base::CompoundState>()->components[i];
@@ -377,11 +351,6 @@ namespace ompl
 
                     double newX = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[0];
                     double newY = qnew->as<ompl::base::RealVectorStateSpace::StateType>()->values[1];
-
-                    // std::cout << "NEAR:" << std::endl;
-                    // std::cout << "(" << nearX << ", " << nearY << ")" << std::endl;
-                    // std::cout << "NEW:" << std::endl;
-                    // std::cout << "(" << newX << ", " << newY << ")" << std::endl;
 
                     std::pair<double, double> nearCoord (nearX, nearY);
                     std::pair<double, double> newCoord (newX, newY);
@@ -409,9 +378,6 @@ namespace ompl
                 //std::cout << "NEW" << std::endl;
                 for (auto i = graph.begin(); i != graph.end(); i++)
                 {
-                    //std::cout << "NODE: " << i->first.first <<  ", " << i->first.second << std::endl;
-                    //i->first is key
-                    //i->second is value
                     inDegree[(i->first)] = 0;
                     vertices[(i->first)] = false;
                 }
@@ -440,8 +406,6 @@ namespace ompl
                 while(!(queue.empty()))
                 {
                     // Pop the back element (doing this bc easy methods in c++ (pop_back, back(), push_back))
-                    //std::pair<double, double> vertex = queue.front();
-                    //queue.pop_front();
                     std::pair<double, double> vertex = queue.back();
                     queue.pop_back();
 

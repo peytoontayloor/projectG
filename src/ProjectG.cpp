@@ -457,7 +457,7 @@ int main(int, char **)
         // Update, changed to tensor product, eliminates alot of our sizing issues with the states yippee!! -> pey :)
 
         // Creates and solve a composite TENSOR roadmap of the 4 robots (naive approach)
-        // compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
+        compositeSolve(r1, r2, r3, r4, r1SX, r1SY, r1GX, r1GY, r2SX, r2SY, r2GX, r2GY, r3SX, r3SY, r3GX, r3GY, r4SX, r4SY, r4GX, r4GY, obstacles);
 
         // Now, we want to plan with our implicit search dRRT, using our individual PRM roadmaps (not doing tensor product)
 

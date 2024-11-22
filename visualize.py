@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import sys
 
-data = numpy.loadtxt('spath_clock_.txt')
+data = numpy.loadtxt('solution_path.txt')
 fig, ax = plt.subplots()
 ax.plot(data[:, 0],data[:, 1],'.-', color='b', label='Robot1')
 ax.plot(data[:, 2],data[:, 3],'.-', color='g', label='Robot2')
@@ -59,5 +59,5 @@ while wait:
         else:
             print("Invalid input. Enter 1 or 2")
 
-plt.savefig('spath_clock_.png')
+plt.savefig('path.png')
 plt.show()
